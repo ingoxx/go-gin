@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>lxb介绍</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: #f0f0f0;
+        }
+        .box {
+            width: 246px;
+            height: 298px;
+            background-color: #fff;
+            margin: 100px auto;
+        }
+        .box img {
+            width: 100%;
+        }
+        .box p {
+            font-size: 14px;
+            padding: 0 36px;
+            margin-top: 20px;
+        }
+        .box p span:first-child {
+            font-weight: 600;
+        }
+        .box p span:last-child {
+            color: #ff6700;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <img src="{{ .url }}curry.webp" alt="">
+        <p class="name"><span>姓名:  </span><span>史蒂芬-廖</span></p>
+        <p class="hobby"><span>爱好:  </span><span>各种球类</span></p>
+        <p class="skill"><span>技能:  </span><span>python,golang,vue...</span></p>
+    </div>
+</body>
+</html>
