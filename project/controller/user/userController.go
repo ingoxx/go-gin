@@ -2,6 +2,7 @@ package user
 
 import (
 	"fmt"
+	"github.com/mitchellh/mapstructure"
 	"net/http"
 
 	"github.com/Lxb921006/Gin-bms/project/logic/user"
@@ -11,29 +12,33 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+var (
+	validate = validator.New()
+)
+
 type CreateUserForm struct {
-	Name       string `form:"name" binding:"required"`
-	Email      string `form:"email" binding:"required"`
-	RoleId     uint   `form:"roleId" binding:"required"`
-	Tel        int    `form:"tel" binding:"required" validate:"min=1500000"`
-	Isopenga   uint   `form:"isopenga"`
-	Isopenqr   uint   `form:"isopenqr"`
-	Password   string `form:"password" binding:"required"`
-	RePassword string `form:"rePassword" binding:"required" validate:"eqfield=Password"`
+	Name       string `json:"name" form:"name" binding:"required"`
+	Email      string `json:"email" form:"email" binding:"required"`
+	RoleId     uint   `json:"roleId" form:"roleId" binding:"required"`
+	Tel        int    `json:"tel" form:"tel" binding:"required" validate:"min=1500000"`
+	Isopenga   uint   `json:"isopenga" form:"isopenga"`
+	Isopenqr   uint   `json:"isopenqr" form:"isopenqr"`
+	Password   string `json:"password" form:"password" binding:"required"`
+	RePassword string `json:"rePassword" form:"rePassword" binding:"required" validate:"eqfield=Password"`
 }
 
 type UpdateUserForm struct {
-	Name       string `form:"name"`
-	Uid        uint   `form:"uid" binding:"required"`
-	Password   string `form:"password"`
-	RePassword string `form:"rePassword"`
-	Rid        uint   `form:"rid" binding:"required"`
-	Isopenga   uint   `form:"isopenga"`
-	Isopenqr   uint   `form:"isopenqr"`
+	Name       string `json:"name" form:"name"`
+	Uid        uint   `json:"uid" form:"uid" binding:"required"`
+	Password   string `json:"password" form:"password"`
+	RePassword string `json:"rePassword" form:"rePassword"  validate:"eqfield=Password"`
+	Rid        uint   `json:"rid" form:"rid" binding:"required"`
+	Isopenga   uint   `json:"isopenga" form:"isopenga"`
+	Isopenqr   uint   `json:"isopenqr" form:"isopenqr"`
 }
 
 type DelUserByIdJson struct {
-	Uid []uint `form:"uid" json:"uid" binding:"required" validate:"contains=1"` //我是super user, 防止把自己给误删
+	Uid []uint `json:"uid" form:"uid" binding:"required" validate:"containsAdminUid"`
 }
 
 type GetUserByNameQuery struct {
@@ -42,9 +47,9 @@ type GetUserByNameQuery struct {
 
 func AddUser(ctx *gin.Context) {
 	var u model.User
-	var ud CreateUserForm
+	var addUser CreateUserForm
 
-	if err := ctx.ShouldBind(&ud); err != nil {
+	if err := ctx.ShouldBind(&addUser); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
 			"code":    60001,
@@ -52,33 +57,33 @@ func AddUser(ctx *gin.Context) {
 		return
 	}
 
-	validate := validator.New()
-	vd := NewValidateData(validate)
-	if err := vd.ValidateStruct(ud); err != nil {
+	//validate := validator.New()
+	if err := NewValidateData(validate).ValidateStruct(addUser); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
-			"message": fmt.Sprintf("添加%v失败, errMsg=%v", ud.Name, err.Error()),
+			"message": fmt.Sprintf("添加%v失败, errMsg: %v", addUser.Name, err.Error()),
 			"code":    60002,
 		})
 		return
 	}
 
-	u.Name = ud.Name
-	u.Email = ud.Email
-	u.Tel = ud.Tel
-	u.Isopenga = ud.Isopenga
-	u.Isopenqr = ud.Isopenqr
-	u.Password = ud.Password
-
-	if err := u.AddUser(u, ud.RoleId); err != nil {
+	if err := mapstructure.Decode(addUser, &u); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
-			"message": fmt.Sprintf("添加%v失败, errMsg=%v", ud.Name, err.Error()),
+			"message": fmt.Sprintf("添加%v失败, errMsg: %v", addUser.Name, err.Error()),
+			"code":    60004,
+		})
+		return
+	}
+
+	if err := u.AddUser(u, addUser.RoleId); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("添加%v失败, errMsg: %v", addUser.Name, err.Error()),
 			"code":    60003,
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("添加%v成功", ud.Name),
+		"message": fmt.Sprintf("添加%v成功", addUser.Name),
 		"code":    10000,
 	})
 
@@ -86,8 +91,8 @@ func AddUser(ctx *gin.Context) {
 
 func DeleteUser(ctx *gin.Context) {
 	var u model.User
-	var ud DelUserByIdJson
-	if err := ctx.ShouldBindJSON(&ud); err != nil {
+	var delUser DelUserByIdJson
+	if err := ctx.ShouldBindJSON(&delUser); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
 			"code":    60004,
@@ -95,17 +100,33 @@ func DeleteUser(ctx *gin.Context) {
 		return
 	}
 
-	validate := validator.New()
-	vd := NewValidateData(validate)
-	if err := vd.ValidateStruct(ud); err != nil {
+	var vd = NewValidateData(validate)
+	if err := vd.RegisterValidation(); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
-			"message": "该用户不能删除, 他是大哥",
-			"code":    60002,
+			"message": err.Error(),
+			"code":    60006,
 		})
 		return
 	}
 
-	if err := u.DeleteUser(ud.Uid); err != nil {
+	users, err := u.GetUserNameById(delUser.Uid)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    60008,
+		})
+		return
+	}
+
+	if err := vd.ValidateStruct(delUser); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    60007,
+		})
+		return
+	}
+
+	if err := u.DeleteUser(delUser.Uid); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
 			"code":    60005,
@@ -114,14 +135,13 @@ func DeleteUser(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("%v删除成功", ud.Uid),
+		"message": fmt.Sprintf("%v删除成功", users),
 		"code":    10000,
 	})
 
 }
 
 func UpdateUser(ctx *gin.Context) {
-
 	var u model.User
 	var ud UpdateUserForm
 	if e := ctx.ShouldBind(&ud); e != nil {
@@ -132,22 +152,25 @@ func UpdateUser(ctx *gin.Context) {
 		return
 	}
 
-	if ud.Password != ud.RePassword {
+	if err := NewValidateData(validate).ValidateStruct(ud); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
-			"message": "密码不一致",
-			"code":    60007,
+			"message": fmt.Sprintf("更新%v失败, errMsg: %v", ud.Name, err.Error()),
+			"code":    60002,
 		})
 		return
 	}
 
-	u.Password = ud.RePassword
-	u.Isopenga = ud.Isopenga
-	u.Isopenqr = ud.Isopenqr
-	u.ID = ud.Uid
-
-	if err := u.UpdateUser(u, ud.Rid); err != nil {
+	if err := mapstructure.Decode(ud, &u); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
-			"message": fmt.Sprintf("更新%v失败, errMsg=%v", ud.Name, err.Error()),
+			"message": fmt.Sprintf("更新%v失败, errMsg: %v", ud.Name, err.Error()),
+			"code":    60009,
+		})
+		return
+	}
+
+	if err := u.UpdateUser(u, ud.Rid, ud.Uid); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("更新%v失败, errMsg: %s", ud.Name, err.Error()),
 			"code":    60008,
 		})
 		return
@@ -197,8 +220,8 @@ func GetUsersByPaginate(ctx *gin.Context) {
 		return
 	}
 
-	validate := validator.New()
-	vd := NewValidateData(validate)
+	//var validate = validator.New()
+	var vd = NewValidateData(validate)
 	if err := pd.PaginateLogic(u, vd); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),

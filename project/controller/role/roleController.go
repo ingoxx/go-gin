@@ -89,7 +89,7 @@ func DeleteRoles(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("%v删除成功", dr.Rid),
+		"message": fmt.Sprintf("%v删除成功", r.GetRoleNames(dr.Rid)),
 		"code":    10000,
 	})
 }
@@ -113,6 +113,7 @@ func GetRolesInfo(ctx *gin.Context) {
 
 func AllotPermsToRole(ctx *gin.Context) {
 	var ap OperatePermsJson
+	var r model.Role
 
 	if err := ctx.ShouldBindJSON(&ap); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -131,7 +132,7 @@ func AllotPermsToRole(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("[%s]添加权限pid为:%v的成功", ap.RoleName, ap.Pid),
+		"message": fmt.Sprintf("角色: %s, 权限已更新: %v", ap.RoleName, r.GetPermNames(ap.Pid)),
 		"code":    10000,
 	})
 }
@@ -160,7 +161,7 @@ func RemoveRolePerms(ctx *gin.Context) {
 	mp := r.FormatUserPerms(data, 0)
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("[%s]移除权限pid为:%v成功", rp.RoleName, rp.Pid),
+		"message": fmt.Sprintf("角色: %s, 权限已移除: %v", rp.RoleName, r.GetPermNames(rp.Pid)),
 		"data":    mp,
 		"code":    10000,
 	})
@@ -179,7 +180,13 @@ func GetRolesList(ctx *gin.Context) {
 
 	validate := validator.New()
 	vd := NewValidateData(validate)
-	vd.ValidateStruct(rp)
+	if err := vd.ValidateStruct(rp); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    50011,
+		})
+		return
+	}
 
 	r.RoleName = rp.RoleName
 
@@ -187,7 +194,7 @@ func GetRolesList(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
-			"code":    50011,
+			"code":    50012,
 		})
 		return
 	}
@@ -221,17 +228,23 @@ func GetUserPerms(ctx *gin.Context) {
 		return
 	}
 
-	var fdata []role.Menu
-
+	var menuData []role.Menu
 	if len(data) != 0 {
-		fdata = role.FormatUserPerms(data, 0)
-
+		menuData = role.FormatUserPerms(data, 0)
 	} else {
-		fdata = []role.Menu{}
+		menuData = []role.Menu{}
+	}
+
+	if len(menuData) == 0 {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": "当前用户还未授权, 请联系管理员",
+			"code":    50013,
+		})
+		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"data": fdata,
+		"data": menuData,
 		"code": 10000,
 	})
 }

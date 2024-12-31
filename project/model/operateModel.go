@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type OperateLog struct {
+type OperateLogModel struct {
 	gorm.Model
 	Url      string    `json:"url" gorm:"type:text;not null"`
 	Operator string    `json:"operator" gorm:"not null"`
@@ -20,8 +20,8 @@ type OperateLog struct {
 	End      time.Time `json:"end" gorm:"-"`
 }
 
-func (o *OperateLog) OperateLogList(page int, op OperateLog) (data *service.Paginate, err error) {
-	var os []OperateLog
+func (o *OperateLogModel) OperateLogList(page int, op OperateLogModel) (data *service.Paginate, err error) {
+	var os []OperateLogModel
 	sql := dao.DB.Model(o).Where(op)
 	pg := service.NewPaginate()
 	data, err = pg.GetPageData(page, sql)
@@ -38,8 +38,8 @@ func (o *OperateLog) OperateLogList(page int, op OperateLog) (data *service.Pagi
 	return
 }
 
-func (o *OperateLog) OperateLogListByDate(page int, op OperateLog) (data *service.Paginate, err error) {
-	var os []OperateLog
+func (o *OperateLogModel) OperateLogListByDate(page int, op OperateLogModel) (data *service.Paginate, err error) {
+	var os []OperateLogModel
 	sql := dao.DB.Model(o).Or(op).Where("created_at between ? and ?", op.Start, op.End)
 	pg := service.NewPaginate()
 	data, err = pg.GetPageData(page, sql)
@@ -56,7 +56,7 @@ func (o *OperateLog) OperateLogListByDate(page int, op OperateLog) (data *servic
 	return
 }
 
-func (o *OperateLog) AddOperateLog(ctx *gin.Context) (err error) {
+func (o *OperateLogModel) AddOperateLog(ctx *gin.Context) (err error) {
 	// 没办法, 上传的不给这样操作
 	if ctx.Request.URL.Path == "/assets/upload" {
 		return
@@ -91,7 +91,7 @@ func (o *OperateLog) AddOperateLog(ctx *gin.Context) (err error) {
 	return
 }
 
-func (o *OperateLog) AloneAddOperateLog(data map[string]string) error {
+func (o *OperateLogModel) AloneAddOperateLog(data map[string]string) error {
 	o.Url = data["url"]
 	o.Operator = data["user"]
 	o.Ip = data["ip"]

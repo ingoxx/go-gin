@@ -71,7 +71,7 @@ func Login(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"data":    data,
-		"message": fmt.Sprintf("欢迎%s大佬!!!", lf.UserName),
+		"message": fmt.Sprintf("欢迎【%s】大佬!!!", lf.UserName),
 		"code":    10000,
 	})
 
@@ -82,7 +82,7 @@ func Logout(ctx *gin.Context) {
 	user := ctx.PostForm("user")
 	if user == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": "请选择用户退出",
+			"message": "缺少必要参数",
 			"code":    10001,
 		})
 		return
@@ -97,7 +97,7 @@ func Logout(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("%s退出成功, 欢迎再次光临!", user),
+		"message": fmt.Sprintf("【%s】退出成功", user),
 		"code":    10000,
 	})
 

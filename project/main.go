@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/Lxb921006/Gin-bms/project/dao"
-	"github.com/Lxb921006/Gin-bms/project/router/root"
+	"github.com/Lxb921006/Gin-bms/project/route/root"
 )
 
 func main() {
@@ -26,11 +26,9 @@ func main() {
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-
 	if dao.RdPool == nil {
 		log.Fatalf(dao.ErrorRedisConnectFailed.Error())
 	}
-
 	dao.Rds = dao.NewRedisDb(dao.RdPool, map[string]dao.Md{})
 
 	//初始化gin并启动

@@ -105,7 +105,7 @@ func GetMissionStatusController(ctx *gin.Context) {
 
 func CreateUpdateProgramRecordController(ctx *gin.Context) {
 	var create CreateUpdateProgramRecordForm
-	log.Println("create >>>")
+
 	if err := create.Create(ctx); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),

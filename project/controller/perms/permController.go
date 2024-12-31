@@ -2,6 +2,7 @@ package perms
 
 import (
 	"fmt"
+	"github.com/mitchellh/mapstructure"
 	"net/http"
 
 	"github.com/Lxb921006/Gin-bms/project/model"
@@ -12,10 +13,10 @@ import (
 )
 
 type CreatePermMenuForm struct {
-	Path     string `form:"path" binding:"required"`
-	Title    string `form:"title" binding:"required"`
-	ParentId uint   `form:"parentid"`
-	Level    uint   `form:"level" binding:"required"`
+	Path     string `json:"path" form:"path" binding:"required"`
+	Title    string `json:"title" form:"title" binding:"required"`
+	ParentId uint   `json:"parentid" form:"parentid"`
+	Level    uint   `json:"level" form:"level" binding:"required"`
 }
 
 type DeletePermsJson struct {
@@ -38,10 +39,18 @@ func CreatePermMenu(ctx *gin.Context) {
 		return
 	}
 
-	p.Path = pd.Path
-	p.Title = pd.Title
-	p.ParentId = pd.ParentId
-	p.Level = pd.Level
+	//p.Path = pd.Path
+	//p.Title = pd.Title
+	//p.ParentId = pd.ParentId
+	//p.Level = pd.Level
+
+	if err := mapstructure.Decode(pd, &p); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("[%s] 创建失败, errMsg: %v", pd.Title, err.Error()),
+			"code":    30003,
+		})
+		return
+	}
 
 	if err := p.CreatePerms(p); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{

@@ -24,7 +24,10 @@ func InitPoolMysql() (err error) {
 		DontSupportRenameIndex:    true,              // 重命名索引时采用删除并新建的方式，MySQL 5.7 之前的数据库和 MariaDB 不支持重命名索引
 		DontSupportRenameColumn:   true,              // 用 `change` 重命名列，MySQL 8 之前的数据库和 MariaDB 不支持重命名列
 		SkipInitializeWithVersion: false,             // 根据当前 MySQL 版本自动配置
-	}), &gorm.Config{})
+	}), &gorm.Config{
+		PrepareStmt:            true,
+		SkipDefaultTransaction: true,
+	})
 	if err != nil {
 		return
 	}

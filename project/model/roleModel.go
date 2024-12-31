@@ -12,10 +12,11 @@ type Role struct {
 	RoleName    string `json:"rolename" gorm:"unique;not null"`
 	Description string `json:"description" gorm:"-"`
 	//不同步更新permission表
-	//Permission  []Permission `json:"permission" gorm:"many2many:role_permissions;association_autoupdate:false;association_autocreate:false"`
+	//Permissions  []Permissions `json:"permission" gorm:"many2many:role_permissions;association_autoupdate:false;association_autocreate:false"`
 	//同步更新permission表
-	Permission []Permission `json:"permission" gorm:"many2many:role_permissions"`
-	Mm         []Menu       `json:"mm" gorm:"-"`
+	Permissions []Permission `json:"permissions" gorm:"many2many:role_permissions"`
+	Mm          []Menu       `json:"mm" gorm:"-"`
+	Users       []User       `json:"users" gorm:"many2many:role_users"`
 }
 
 type Menu struct {
@@ -33,66 +34,60 @@ type RoleUser struct {
 	UserID uint `json:"userId"`
 }
 
-func (u *Role) CreateRole(rd Role) (err error) {
+func (rl *Role) CreateRole(rd Role) (err error) {
 	if err = dao.DB.Create(&rd).Error; err != nil {
 		return
 	}
 	return
 }
 
-// 分配权限
-func (u *Role) AllotPerms(rid uint, pid []uint) (err error) {
-	var p []Permission
-	if err = dao.DB.Where("id IN ?", pid).Find(&p).Error; err != nil {
-		return
-
-	}
-	if err = dao.DB.Where("id = ?", rid).Find(u).Error; err != nil {
-		return
+func (rl *Role) GetPermNames(pid []uint) []string {
+	var perms []Permission
+	var pns []string
+	if err := dao.DB.Where("id IN ?", pid).Find(&perms).Error; err != nil {
+		return pns
 	}
 
-	u.Permission = p
-
-	if err = dao.DB.Save(&u).Error; err != nil {
-		return
+	for _, v := range perms {
+		pns = append(pns, v.Title)
 	}
 
-	return
+	return pns
 }
 
-// 移除权限
-func (u *Role) RemovePerms(rid uint, pid []uint) (p []Permission, err error) {
-	var rp RolePermission
-	tx := dao.DB.Begin()
-
-	if err = tx.Where("role_id = ? AND permission_id IN ?", rid, pid).Delete(&rp).Error; err != nil {
-		return
+func (rl *Role) GetRoleNames(rid []uint) []string {
+	var role []Role
+	var pns []string
+	if err := dao.DB.Where("id IN ?", rid).Find(&role).Error; err != nil {
+		return pns
 	}
 
-	if err = tx.Commit().Error; err != nil {
-		return
+	for _, v := range role {
+		pns = append(pns, v.RoleName)
 	}
 
-	p, _ = u.GetRolePerms(rid)
-
-	return
+	return pns
 }
 
-func (u *Role) DeleteRole(rid []uint) (err error) {
+// AllotPerms 分配权限
+func (rl *Role) AllotPerms(rid uint, pid []uint) (err error) {
+	var perms []Permission
+	var role Role
 	tx := dao.DB.Begin()
 
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	if err = tx.Where("role_id IN ?", rid).Delete(&RoleUser{}).Error; err != nil {
-		tx.Rollback()
+	if err = dao.DB.Where("id IN ?", pid).Find(&perms).Error; err != nil {
 		return
 	}
 
-	if err = tx.Where("id IN ?", rid).Unscoped().Delete(u).Error; err != nil {
+	if len(perms) == 0 {
+		return ErrEmptyPermList
+	}
+
+	if err = dao.DB.Where("id = ?", rid).Find(&role).Error; err != nil {
+		return
+	}
+
+	if err = tx.Model(&role).Association("Permissions").Replace(&perms); err != nil {
 		tx.Rollback()
 		return
 	}
@@ -100,7 +95,67 @@ func (u *Role) DeleteRole(rid []uint) (err error) {
 	return tx.Commit().Error
 }
 
-func (u *Role) GetAllRoles() (ul []Role, err error) {
+// RemovePerms 移除权限
+func (rl *Role) RemovePerms(rid uint, pid []uint) (perms []Permission, err error) {
+	tx := dao.DB.Begin() // 开启事务
+
+	// 1. 通过原生 SQL 直接删除 role_permissions 中间表的关联数据
+	if err = tx.Exec("DELETE FROM role_permissions WHERE role_id = ? AND permission_id IN (?)", rid, pid).Error; err != nil {
+		tx.Rollback()
+		return
+	}
+
+	if err = tx.Preload("Permissions").First(&rl, rid).Error; err != nil {
+		tx.Rollback()
+		return
+	}
+
+	if err = tx.Commit().Error; err != nil {
+		return
+	}
+
+	perms = rl.Permissions
+	return
+}
+
+func (rl *Role) DeleteRole(rid []uint) (err error) {
+	var role Role
+
+	tx := dao.DB.Begin()
+
+	for _, v := range rid {
+		if err = dao.DB.First(&role, v).Error; err != nil {
+			return
+		}
+
+		if role.RoleName == "管理员" {
+			continue
+		}
+
+		if err = tx.Model(&role).Association("Permissions").Clear(); err != nil {
+			tx.Rollback()
+			return
+		}
+
+		if err = tx.Model(&role).Association("Users").Clear(); err != nil {
+			tx.Rollback()
+			return
+		}
+
+		if err = tx.Unscoped().Delete(&role, v).Error; err != nil {
+			tx.Rollback()
+			return
+		}
+
+		if err = tx.Commit().Error; err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+func (rl *Role) GetAllRoles() (ul []Role, err error) {
 	err = dao.DB.Find(&ul).Error
 	if err != nil {
 		return
@@ -108,10 +163,10 @@ func (u *Role) GetAllRoles() (ul []Role, err error) {
 	return
 }
 
-func (u *Role) GetRolesList(page int, rolename Role) (data *service.Paginate, err error) {
+func (rl *Role) GetRolesList(page int, rolename Role) (data *service.Paginate, err error) {
 	var rs []Role
 	var frs []Role
-	sql := dao.DB.Model(u).Where(rolename)
+	sql := dao.DB.Model(rl).Where(rolename)
 	pg := service.NewPaginate()
 	data, err = pg.GetPageData(page, sql)
 	if err != nil {
@@ -123,8 +178,8 @@ func (u *Role) GetRolesList(page int, rolename Role) (data *service.Paginate, er
 	}
 
 	for i := 0; i < len(rs); i++ {
-		p, _ := u.GetRolePerms(rs[i].ID)
-		m := u.FormatUserPerms(p, 0)
+		p, _ := rl.GetRolePerms(rs[i].ID)
+		m := rl.FormatUserPerms(p, 0)
 		rs[i].Mm = m
 		frs = append(frs, rs[i])
 		dao.DB.Save(&rs[i])
@@ -135,45 +190,38 @@ func (u *Role) GetRolesList(page int, rolename Role) (data *service.Paginate, er
 	return
 }
 
-func (u *Role) GetUserPerms(uid uint) (p []Permission, err error) {
-	var ud User
-	// err = dao.DB.Model(&Permission{}).
-	// 	Joins("inner join role_permissions on role_permissions.permission_id = permissions.id").
-	// 	Joins("inner join role_users on role_users.role_id = role_permissions.role_id and role_users.user_id = ?", uid).
-	// 	Select("permissions.id", "permissions.path", "permissions.title", "permissions.hidden", "permissions.parent_id", "permissions.level").Find(&p).Error
-	// if err != nil {
-	// 	return
-	// }
+func (rl *Role) GetUserPerms(uid uint) (p []Permission, err error) {
+	var user User
 
-	if err = dao.DB.Where("id = ?", uid).Find(&ud).Error; err != nil {
+	if err = dao.DB.Preload("Roles.Permissions").First(&user, uid).Error; err != nil {
 		return
 	}
 
-	if err = dao.DB.Model(&ud).Association("Role").Find(u); err != nil {
-		return
+	permissionsMap := make(map[uint]Permission)
+	for _, role := range user.Roles {
+		for _, permission := range role.Permissions {
+			permissionsMap[permission.ID] = permission
+		}
 	}
 
-	p, err = u.GetRolePerms(u.ID)
-	if err != nil {
-		return
+	p = make([]Permission, 0, len(permissionsMap))
+	for _, permission := range permissionsMap {
+		p = append(p, permission)
 	}
 
 	return
 }
 
-func (u *Role) GetRolePerms(rid uint) (p []Permission, err error) {
-	err = dao.DB.Model(&Permission{}).
-		Joins("inner join role_permissions on role_permissions.permission_id = permissions.id").
-		Joins("inner join roles on roles.id = role_permissions.role_id and roles.id = ?", rid).
-		Select("permissions.id", "permissions.path", "permissions.title", "permissions.hidden", "permissions.parent_id", "permissions.level").Find(&p).Error
-	if err != nil {
+func (rl *Role) GetRolePerms(rid uint) (p []Permission, err error) {
+	var role Role
+	if err = dao.DB.Preload("Permissions").Find(&role, rid).Error; err != nil {
 		return
 	}
 
-	return
+	return role.Permissions, nil
 }
 
-func (u *Role) GetAllFormatPerms() (p []Permission, err error) {
+func (rl *Role) GetAllFormatPerms() (p []Permission, err error) {
 	err = dao.DB.Find(&p).Error
 	if err != nil {
 		return
@@ -181,12 +229,12 @@ func (u *Role) GetAllFormatPerms() (p []Permission, err error) {
 	return
 }
 
-func (u *Role) FormatUserPerms(p []Permission, pid uint) (m []Menu) {
+func (rl *Role) FormatUserPerms(p []Permission, pid uint) (m []Menu) {
 	m = []Menu{}
 	m1 := Menu{}
 	for i := 0; i < len(p); i++ {
 		if p[i].ParentId == pid {
-			m1.Children = u.FormatUserPerms(p, p[i].ID)
+			m1.Children = rl.FormatUserPerms(p, p[i].ID)
 			m1.ID = p[i].ID
 			m1.ParentId = p[i].ParentId
 			m1.Title = p[i].Title

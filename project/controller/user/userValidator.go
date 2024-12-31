@@ -1,7 +1,18 @@
 package user
 
 import (
+	"errors"
+	"fmt"
+	"github.com/Lxb921006/Gin-bms/project/dao"
+	"github.com/Lxb921006/Gin-bms/project/model"
 	"github.com/go-playground/validator/v10"
+)
+
+type ve error
+
+var (
+	notAllowDelUser = []string{"admin", "二毛"}
+	validateErr     ve
 )
 
 type ValidateData struct {
@@ -10,27 +21,34 @@ type ValidateData struct {
 
 func (v *ValidateData) ValidateStruct(s interface{}) (err error) {
 	if err = v.validate.Struct(s); err != nil {
-		return
+		return validateErr
 	}
 	return
 }
 
-func (v *ValidateData) ValidateCheckForAdminUid(fl validator.FieldLevel) bool {
-	uidList, ok := fl.Field().Interface().([]uint)
+func (v *ValidateData) ValidateForAdminUid(fl validator.FieldLevel) bool {
+	var user model.User
+	userList, ok := fl.Field().Interface().([]uint)
 	if !ok {
 		return false
 	}
-	// 不能把我删了, 我得有最高权限
-	for _, uid := range uidList {
-		if uid == 26 {
+
+	for _, u := range userList {
+		if err := dao.DB.First(&user, u).Error; err != nil {
 			return false
+		}
+		for _, admin := range notAllowDelUser {
+			if admin == user.Name {
+				validateErr = errors.New(fmt.Sprintf("【%s】超级管理员不能删除", admin))
+				return false
+			}
 		}
 	}
 
 	return true
 }
 
-func (v *ValidateData) ValidatorNumber(fl validator.FieldLevel) bool {
+func (v *ValidateData) ValidateNumber(fl validator.FieldLevel) bool {
 	num := fl.Field().Interface()
 	switch num := num.(type) {
 	case int:
@@ -50,15 +68,18 @@ func (v *ValidateData) ValidatorNumber(fl validator.FieldLevel) bool {
 	}
 }
 
-func NewValidateData(v *validator.Validate) *ValidateData {
-	return &ValidateData{
-		validate: v,
+func (v *ValidateData) RegisterValidation() (err error) {
+	if err = v.validate.RegisterValidation("containsAdminUid", v.ValidateForAdminUid); err != nil {
+		return err
 	}
+
+	return nil
 }
 
-// func RegisterValidator() {
-// 	var vd ValidateData
-// 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-// 		v.RegisterValidation("ValidatorNumber", vd.ValidatorNumber)
-// 	}
-// }
+func NewValidateData(v *validator.Validate) *ValidateData {
+	var vd = &ValidateData{
+		validate: v,
+	}
+
+	return vd
+}

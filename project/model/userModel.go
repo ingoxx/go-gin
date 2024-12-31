@@ -15,37 +15,35 @@ type User struct {
 	Hobby    string `json:"-" gorm:"default:'basketball'"`
 	Tel      int    `json:"tel" gorm:"default:168888"`
 	Password string `json:"-" gorm:"not null"`
-	Role     []Role `json:"role" gorm:"many2many:role_users"`
+	Roles    []Role `json:"roles" gorm:"many2many:role_users"`
 	Isopenga uint   `json:"isopenga" gorm:"default:1"`
 	Isopenqr uint   `json:"isopenqr" gorm:"default:1"`
 }
 
-func (u *User) AddUser(d User, rid uint) (err error) {
-	if err = dao.DB.Create(&d).Error; err != nil {
-		return
+func (u *User) AddUser(au User, rid uint) (err error) {
+	var roles []Role
+
+	role, err := u.AssignRoles(rid)
+	if err != nil {
+		return err
 	}
 
-	if err = u.AssignRoles(d.Name, rid); err != nil {
+	roles = append(roles, role)
+	au.Roles = roles
+
+	if err = dao.DB.Create(&au).Error; err != nil {
 		return
 	}
 
 	return
 }
 
-// 分配角色
-func (u *User) AssignRoles(name string, rid uint) (err error) {
-	var role Role
-
-	if err = dao.DB.Where("name = ?", name).Find(u).Error; err != nil {
+// AssignRoles 分配角色
+func (u *User) AssignRoles(rid uint) (role Role, err error) {
+	if err = dao.DB.Where("id = ?", rid).First(&role).Error; err != nil {
 		return
 	}
 
-	if err = dao.DB.Where("id = ?", rid).Find(&role).Error; err != nil {
-		return
-	}
-
-	u.Role = append(u.Role, role)
-	dao.DB.Save(u)
 	return
 }
 
@@ -71,8 +69,11 @@ func (u *User) DeleteUser(uid []uint) (err error) {
 	return tx.Commit().Error
 }
 
-func (u *User) UpdateUser(ud User, rid uint) (err error) {
-	var ur RoleUser
+func (u *User) UpdateUser(ud User, rid uint, uid uint) (err error) {
+	var user User
+	var role Role
+	var roles []Role
+
 	tx := dao.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -80,12 +81,23 @@ func (u *User) UpdateUser(ud User, rid uint) (err error) {
 		}
 	}()
 
-	if err = tx.Model(u).Where("id = ?", ud.ID).Updates(ud).Error; err != nil {
+	if err = dao.DB.Where("id = ?", uid).Find(&user).Error; err != nil {
+		return
+	}
+
+	// 目前设计就是一个用户只能在一个角色组
+	if err = dao.DB.Where("id = ?", rid).First(&role).Error; err != nil {
+		return err
+	}
+
+	roles = append(roles, role)
+
+	if err = tx.Model(&user).Association("Roles").Replace(roles); err != nil {
 		tx.Rollback()
 		return
 	}
 
-	if err = tx.Model(&ur).Where("user_id = ?", ud.ID).Update("role_id", rid).Error; err != nil {
+	if err = tx.Model(&user).Updates(&ud).Error; err != nil {
 		tx.Rollback()
 		return
 	}
@@ -93,18 +105,33 @@ func (u *User) UpdateUser(ud User, rid uint) (err error) {
 	return tx.Commit().Error
 }
 
+func (u *User) GetUserNameById(uid []uint) (us []string, err error) {
+	var users []User
+	if err = dao.DB.Where("id IN ?", uid).Find(&users).Error; err != nil {
+		return
+	}
+
+	if len(users) > 0 {
+		for _, un := range users {
+			us = append(us, un.Name)
+		}
+	}
+
+	return
+}
+
 func (u *User) GetUserByName(name string) (ud User, err error) {
-	if err = dao.DB.Model(u).Where("name = ?", name).Preload("Role").Find(&ud).Error; err != nil {
+	if err = dao.DB.Model(u).Where("name = ?", name).Preload("Roles").Find(&ud).Error; err != nil {
 		return
 	}
 
 	return
 }
 
-// 单表中过滤出row
-func (u *User) GetUserByPaginate(page int, d User) (ul *service.Paginate, err error) {
+// GetUserByPaginate 单表中过滤出row
+func (u *User) GetUserByPaginate(page int, user User) (ul *service.Paginate, err error) {
 	var us []User
-	sql := dao.DB.Model(u).Where(d).Preload("Role")
+	sql := dao.DB.Model(u).Where(&user).Preload("Roles")
 	pg := service.NewPaginate()
 	ul, err = pg.GetPageData(page, sql)
 	if err != nil {
@@ -120,11 +147,11 @@ func (u *User) GetUserByPaginate(page int, d User) (ul *service.Paginate, err er
 	return
 }
 
-// 通过m2m关系表中过滤出row
+// GetUserByMmPaginate 通过m2m关系表中过滤出row
 func (u *User) GetUserByMmPaginate(page int, rolename string, user User) (ul *service.Paginate, err error) {
 	var us []User
 	var uid []uint
-	if err = dao.DB.Preload("Role", Role{RoleName: rolename}).Where(&user).Find(&us).Error; err != nil {
+	if err = dao.DB.Preload("Roles", Role{RoleName: rolename}).Where(&user).Find(&us).Error; err != nil {
 		return
 	}
 
@@ -132,7 +159,7 @@ func (u *User) GetUserByMmPaginate(page int, rolename string, user User) (ul *se
 		uid = append(uid, v.ID)
 	}
 
-	sql := dao.DB.Model(u).Where("id IN ?", uid).Preload("Role")
+	sql := dao.DB.Model(u).Where("id IN ?", uid).Preload("Roles")
 	pg := service.NewPaginate()
 	ul, err = pg.GetPageData(page, sql)
 	if err != nil {
@@ -150,7 +177,7 @@ func (u *User) GetUserByMmPaginate(page int, rolename string, user User) (ul *se
 
 func (u *User) FormatData(ud []User) (usd []User) {
 	for _, v := range ud {
-		if len(v.Role) != 0 {
+		if len(v.Roles) != 0 {
 			usd = append(usd, v)
 		}
 	}

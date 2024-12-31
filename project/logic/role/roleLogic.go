@@ -27,41 +27,10 @@ func FormatUserPerms(p []model.Permission, pid uint) (m []Menu) {
 }
 
 func UpdateUserPerms(newPermsId []uint, rid uint) (err error) {
-	var rm model.Role
-	var oldPermsId []uint
-	var delOldPermsId []uint
+	var role model.Role
 
-	oldPerms, err := rm.GetRolePerms(rid)
-	if err != nil {
+	if err = role.AllotPerms(rid, newPermsId); err != nil {
 		return
-	}
-
-	if err = rm.AllotPerms(rid, newPermsId); err != nil {
-		return
-	}
-
-	for _, v := range oldPerms {
-		oldPermsId = append(oldPermsId, v.ID)
-	}
-
-	for _, v2 := range oldPermsId {
-		flag := 0
-		for _, v1 := range newPermsId {
-			if v2 == v1 {
-				flag = 1
-				break
-			}
-		}
-		if flag == 0 {
-			delOldPermsId = append(delOldPermsId, v2)
-		}
-	}
-
-	if len(delOldPermsId) >= 0 {
-		_, err = rm.RemovePerms(rid, delOldPermsId)
-		if err != nil {
-			return
-		}
 	}
 
 	return

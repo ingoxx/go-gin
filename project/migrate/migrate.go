@@ -10,7 +10,7 @@ func InitTable() (err error) {
 		&model.User{},
 		&model.Role{},
 		&model.Permission{},
-		&model.OperateLog{},
+		&model.OperateLogModel{},
 		&model.AssetsModel{},
 		&model.AssetsProcessUpdateRecordModel{},
 	)

@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"github.com/Lxb921006/Gin-bms/project/middleware"
-	"github.com/Lxb921006/Gin-bms/project/router/assets"
-	"github.com/Lxb921006/Gin-bms/project/router/login"
-	"github.com/Lxb921006/Gin-bms/project/router/operate"
-	"github.com/Lxb921006/Gin-bms/project/router/perms"
-	"github.com/Lxb921006/Gin-bms/project/router/role"
-	"github.com/Lxb921006/Gin-bms/project/router/user"
+	"github.com/Lxb921006/Gin-bms/project/route/assets"
+	"github.com/Lxb921006/Gin-bms/project/route/login"
+	"github.com/Lxb921006/Gin-bms/project/route/operate"
+	"github.com/Lxb921006/Gin-bms/project/route/perms"
+	"github.com/Lxb921006/Gin-bms/project/route/role"
+	"github.com/Lxb921006/Gin-bms/project/route/user"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,7 +19,7 @@ func SetupRouter() *http.Server {
 	// gin.SetMode(gin.ReleaseMode) 正式生产环境需切换到Release模式，测试是debug模式
 	router := gin.Default()
 	router.Static("/static", "../static")
-	// router.LoadHTMLGlob("../../templates")
+	// route.LoadHTMLGlob("../../templates")
 	router.Use(middleware.AllowCos(), middleware.TokenVerify(), middleware.PermsVerify(), middleware.Visitlimit(), middleware.OperateRecord())
 
 	//加载路由配置

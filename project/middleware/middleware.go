@@ -119,7 +119,7 @@ func Visitlimit() gin.HandlerFunc {
 func OperateRecord() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		url := ctx.Request.URL.Path
-		op := model.OperateLog{}
+		op := model.OperateLogModel{}
 		if service.W.OperateWhileList(url) {
 			ctx.Next()
 			return

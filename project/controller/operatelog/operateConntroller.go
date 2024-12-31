@@ -12,7 +12,7 @@ import (
 
 func OperateLogList(ctx *gin.Context) {
 	var od operate.OperateLogListQuery
-	var u model.OperateLog
+	var u model.OperateLogModel
 	if err := ctx.ShouldBindQuery(&od); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
