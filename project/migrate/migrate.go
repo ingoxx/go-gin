@@ -12,7 +12,8 @@ func InitTable() (err error) {
 		&model.Permission{},
 		&model.OperateLogModel{},
 		&model.AssetsModel{},
-		&model.AssetsProcessUpdateRecordModel{},
+		&model.AssetsProgramUpdateRecordModel{},
+		&model.AssetsProgramModel{},
 	)
 
 	return

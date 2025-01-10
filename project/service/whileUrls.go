@@ -33,13 +33,14 @@ func (WhileUrls) OperateWhileList(url string) bool {
 		"/perms/list",
 		"/role/list",
 		"/user/list",
-		"/log/list",
+		"/logger/list",
 		"/role/rolesname",
 		"/role/userperms",
 		"/user/getinfobyname",
 		"/assets/list",
 		"/assets/process/update/list",
-		"/log/list",
+		"/logger/list",
+		"/assets/program/list",
 	}
 
 	for i := 0; i < len(wls); i++ {

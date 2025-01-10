@@ -14,6 +14,10 @@ import (
 	"strings"
 )
 
+var (
+	validate = validator.New()
+)
+
 type RunProgramApiForm struct {
 	Ip         string `form:"ip" json:"ip" gorm:"not null" binding:"required"`
 	UpdateName string `form:"update_name" json:"update_name" gorm:"not null" binding:"required"`
@@ -41,7 +45,7 @@ func (apf *RunProgramApiForm) Run(ctx *gin.Context) (err error) {
 
 	cy := utils.NewProgramAsyncRunCelery()
 	cy.Task(apf)
-	close(cy.Works)
+	cy.Close()
 
 	return
 }
@@ -58,12 +62,11 @@ type ProgramUpdateListForm struct {
 }
 
 func (apul *ProgramUpdateListForm) List(ctx *gin.Context) (data *service.Paginate, err error) {
-	var lm model.AssetsProcessUpdateRecordModel
+	var lm model.AssetsProgramUpdateRecordModel
 	if err = ctx.ShouldBind(apul); err != nil {
 		return
 	}
 
-	validate := validator.New()
 	vd := NewValidateData(validate)
 	if err = vd.ValidateStruct(apul); err != nil {
 		return
@@ -82,11 +85,11 @@ func (apul *ProgramUpdateListForm) List(ctx *gin.Context) (data *service.Paginat
 }
 
 type CreateUpdateProgramRecordForm struct {
-	DataList []model.AssetsProcessUpdateRecordModel `form:"data_list" json:"data_list" binding:"required"`
+	DataList []model.AssetsProgramUpdateRecordModel `form:"data_list" json:"data_list" binding:"required"`
 }
 
 func (c *CreateUpdateProgramRecordForm) Create(ctx *gin.Context) (err error) {
-	var cm model.AssetsProcessUpdateRecordModel
+	var cm model.AssetsProgramUpdateRecordModel
 	if err = ctx.ShouldBindJSON(c); err != nil {
 		return
 	}
@@ -102,13 +105,12 @@ type GetMissionStatusForm struct {
 	Result string `form:"result" binding:"required"`
 }
 
-func (ps *GetMissionStatusForm) Get(ctx *gin.Context) (data map[string]string, err error) {
+func (ps *GetMissionStatusForm) GetProgress(ctx *gin.Context) (data map[string]string, err error) {
 	if err = ctx.ShouldBind(ps); err != nil {
 		return
 	}
 
 	data, err = dao.Rds.GetProcessStatus()
-	//log.Println(data)
 	if err != nil {
 		return
 	}

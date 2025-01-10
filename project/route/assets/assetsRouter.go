@@ -9,17 +9,19 @@ func AssetsRouter(r *gin.Engine) {
 	assets := r.Group("/assets")
 	{
 		// 执行后端程序的接口
-		assets.GET("/ws", ac.RunProgramWsController)
-		assets.GET("/file/ws", ac.SyncFilePassWsController)
-		assets.GET("/process/status", ac.GetMissionStatusController)
-		assets.GET("/process/update/list", ac.ProgramUpdateListController)
-		assets.GET("/list", ac.AssetsListController)
-		assets.POST("/process/update/create", ac.CreateUpdateProgramRecordController)
+		assets.GET("/ws", ac.RunProgramController)
+		assets.GET("/file/ws", ac.SyncFileController)
+		assets.GET("/program/status", ac.GetMissionStatusController)
+		assets.GET("/program/update/list", ac.ProgramUpdateListController)
+		assets.GET("/list", ac.ListController)
+		assets.POST("/program/update/create", ac.CreateUpdateProgramRecordController)
 		assets.POST("/api", ac.RunProgramApiController)
+		assets.POST("/program/add", ac.AddProgramOperateController)
+		assets.GET("/program/list", ac.ProgramListController)
 		// 服务器的增删改查接口
 		assets.POST("/upload", ac.UploadController)
-		assets.POST("/add", ac.AssetsCreateController)
-		assets.POST("/del", ac.AssetsDeleteController)
-		assets.POST("/update", ac.AssetsModifyController)
+		assets.POST("/add", ac.CreateController)
+		assets.POST("/del", ac.DeleteController)
+		assets.POST("/update", ac.UpdateController)
 	}
 }

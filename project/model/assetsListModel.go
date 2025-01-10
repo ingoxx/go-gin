@@ -42,7 +42,7 @@ func (o *AssetsModel) Create(am []*AssetsModel) (err error) {
 	return
 }
 
-func (o *AssetsModel) Del(ip []string) (err error) {
+func (o *AssetsModel) Delete(ip []string) (err error) {
 	tx := dao.DB.Begin()
 
 	defer func() {
@@ -51,7 +51,7 @@ func (o *AssetsModel) Del(ip []string) (err error) {
 		}
 	}()
 
-	if err = tx.Where("ip IN ?", ip).Delete(o).Error; err != nil {
+	if err = tx.Where("ip IN ?", ip).Unscoped().Delete(o).Error; err != nil {
 		tx.Rollback()
 		return
 	}
@@ -59,7 +59,7 @@ func (o *AssetsModel) Del(ip []string) (err error) {
 	return tx.Commit().Error
 }
 
-func (o *AssetsModel) Modify(data map[string]interface{}) (err error) {
+func (o *AssetsModel) Update(data map[string]interface{}) (err error) {
 	if err = dao.DB.Model(o).Where("id = ?", data["id"].(int64)).Updates(data).Error; err != nil {
 		return
 	}

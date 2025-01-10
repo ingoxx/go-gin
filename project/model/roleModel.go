@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/Lxb921006/Gin-bms/project/dao"
+	"github.com/Lxb921006/Gin-bms/project/errors"
 	"github.com/Lxb921006/Gin-bms/project/service"
 
 	"gorm.io/gorm"
@@ -80,7 +81,7 @@ func (rl *Role) AllotPerms(rid uint, pid []uint) (err error) {
 	}
 
 	if len(perms) == 0 {
-		return ErrEmptyPermList
+		return errors.ErrEmptyPermList
 	}
 
 	if err = dao.DB.Where("id = ?", rid).Find(&role).Error; err != nil {

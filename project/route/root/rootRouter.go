@@ -20,7 +20,7 @@ func SetupRouter() *http.Server {
 	router := gin.Default()
 	router.Static("/static", "../static")
 	// route.LoadHTMLGlob("../../templates")
-	router.Use(middleware.AllowCos(), middleware.TokenVerify(), middleware.PermsVerify(), middleware.Visitlimit(), middleware.OperateRecord())
+	router.Use(middleware.AllowCos(), middleware.TokenVerify(), middleware.PermsVerify(), middleware.ReqFrequencyLimit(), middleware.OperateRecord())
 
 	//加载路由配置
 	user.UserRouter(router)

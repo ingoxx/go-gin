@@ -14,13 +14,13 @@ type LoginForm struct {
 	Password string `form:"password" binding:"required"`
 }
 
-type GaloginForm struct {
+type MFAVerifyForm struct {
 	UserName string `form:"user" binding:"required" json:"user"`
 	Code     string `form:"code" binding:"required"`
 }
 
-func Galogin(ctx *gin.Context) {
-	var ga GaloginForm
+func MFAVerify(ctx *gin.Context) {
+	var ga MFAVerifyForm
 	var l model.Login
 
 	if err := ctx.ShouldBind(&ga); err != nil {

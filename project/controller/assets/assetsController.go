@@ -2,27 +2,27 @@ package assets
 
 import (
 	"fmt"
+	"github.com/Lxb921006/Gin-bms/project/logic/assets"
+	"github.com/Lxb921006/Gin-bms/project/model"
 	"github.com/Lxb921006/Gin-bms/project/service"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"log"
+	"github.com/mitchellh/mapstructure"
 	"net/http"
 )
 
 var (
-	ReadBufferSize  = 1024
-	WriteBufferSize = 1024
+	upGrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
 )
 
-func RunProgramWsController(ctx *gin.Context) {
-	var upGrader = websocket.Upgrader{
-		ReadBufferSize:  ReadBufferSize,
-		WriteBufferSize: WriteBufferSize,
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
-
+// RunProgramController 程序更新
+func RunProgramController(ctx *gin.Context) {
 	conn, err := upGrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
 		return
@@ -30,38 +30,22 @@ func RunProgramWsController(ctx *gin.Context) {
 
 	defer conn.Close()
 
-	ws := service.NewWs(conn)
-
-	if err = ws.Run(); err != nil {
-		if err = ws.Conn.WriteMessage(1, []byte(fmt.Sprintf("%s", err.Error()))); err != nil {
-			return
-		}
+	if err = service.NewWs(conn).Run(); err != nil {
 		return
 	}
+
 }
 
-func SyncFilePassWsController(ctx *gin.Context) {
-	var upGrader = websocket.Upgrader{
-		ReadBufferSize:  ReadBufferSize,
-		WriteBufferSize: WriteBufferSize,
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
-
+// SyncFileController 分发文件
+func SyncFileController(ctx *gin.Context) {
 	conn, err := upGrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
-		log.Println("Failed to set websocket upgrade:", err)
 		return
 	}
 
 	defer conn.Close()
 
-	ws := service.NewSendFileWs(conn)
-	if err = ws.Send(); err != nil {
-		if err = ws.Conn.WriteMessage(1, []byte(fmt.Sprintf("%s", err.Error()))); err != nil {
-			return
-		}
+	if err = service.NewSendFileWs(conn).Send(); err != nil {
 		return
 	}
 
@@ -87,7 +71,7 @@ func RunProgramApiController(ctx *gin.Context) {
 // GetMissionStatusController 废弃
 func GetMissionStatusController(ctx *gin.Context) {
 	var ps GetMissionStatusForm
-	data, err := ps.Get(ctx)
+	data, err := ps.GetProgress(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
@@ -156,7 +140,7 @@ func UploadController(ctx *gin.Context) {
 	}
 }
 
-func AssetsListController(ctx *gin.Context) {
+func ListController(ctx *gin.Context) {
 	var alc AssetsListForm
 	data, err := alc.List(ctx)
 	if err != nil {
@@ -176,7 +160,7 @@ func AssetsListController(ctx *gin.Context) {
 	})
 }
 
-func AssetsCreateController(ctx *gin.Context) {
+func CreateController(ctx *gin.Context) {
 	var acf AssetsCreateForm
 	if err := acf.Create(ctx); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -192,7 +176,7 @@ func AssetsCreateController(ctx *gin.Context) {
 	})
 }
 
-func AssetsModifyController(ctx *gin.Context) {
+func UpdateController(ctx *gin.Context) {
 	var amf AssetsModifyForm
 	if err := amf.Modify(ctx); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -208,7 +192,7 @@ func AssetsModifyController(ctx *gin.Context) {
 	})
 }
 
-func AssetsDeleteController(ctx *gin.Context) {
+func DeleteController(ctx *gin.Context) {
 	var adf AssetsDelForm
 	if err := adf.Del(ctx); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -221,5 +205,77 @@ func AssetsDeleteController(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "删除成功",
 		"code":    10000,
+	})
+}
+
+func AddProgramOperateController(ctx *gin.Context) {
+	var pf ProgramAddForm
+	var adp model.AssetsProgramModel
+
+	if err := ctx.ShouldBind(&pf); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+			"code":    10001,
+		})
+		return
+	}
+
+	if err := mapstructure.Decode(pf, &adp); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("添加%v失败, errMsg: %v", pf.CnName, err.Error()),
+			"code":    10002,
+		})
+		return
+	}
+
+	if err := adp.Create(adp); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("添加%v失败, errMsg: %v", pf.CnName, err.Error()),
+			"code":    10003,
+		})
+		return
+	}
+
+	data, err := assets.NewProgramOperate().ProgramData(adp)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("获取程序操作列表失败, errMsg: %v", err.Error()),
+			"code":    10004,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("添加%v成功", pf.CnName),
+		"code":    10000,
+		"data":    data,
+	})
+}
+
+func ProgramListController(ctx *gin.Context) {
+	var pf ProgramListForm
+	var adp model.AssetsProgramModel
+
+	if err := ctx.ShouldBind(&pf); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+			"code":    10001,
+		})
+		return
+	}
+
+	data, err := assets.NewProgramOperate().ProgramData(adp)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("获取程序操作列表失败, errMsg: %v", err.Error()),
+			"code":    10004,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "获取程序操作列表成功",
+		"code":    10000,
+		"data":    data,
 	})
 }

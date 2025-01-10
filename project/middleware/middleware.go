@@ -104,9 +104,9 @@ func PermsVerify() gin.HandlerFunc {
 	}
 }
 
-func Visitlimit() gin.HandlerFunc {
+func ReqFrequencyLimit() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		if err := dao.Rds.Visitlimit(ctx.Request.Host); err != nil {
+		if err := dao.Rds.ReqFrequencyLimit(ctx.Request.Host); err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{
 				"message": err.Error(),
 			})

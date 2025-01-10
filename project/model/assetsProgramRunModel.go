@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type AssetsProcessUpdateRecordModel struct {
+type AssetsProgramUpdateRecordModel struct {
 	ID         int64     `form:"id,omitempty" json:"id,omitempty" gorm:"primaryKey"`
 	Ip         string    `form:"ip" json:"ip,omitempty" gorm:"not null"`
 	Uuid       string    `form:"uuid" json:"uuid,omitempty" gorm:"not null;unique"`
@@ -21,8 +21,8 @@ type AssetsProcessUpdateRecordModel struct {
 	End        time.Time `form:"end,omitempty" json:"end,omitempty" gorm:"default:CURRENT_TIMESTAMP;nullable"`
 }
 
-func (pur *AssetsProcessUpdateRecordModel) List(page int, am AssetsProcessUpdateRecordModel) (data *service.Paginate, err error) {
-	var os []AssetsProcessUpdateRecordModel
+func (pur *AssetsProgramUpdateRecordModel) List(page int, am AssetsProgramUpdateRecordModel) (data *service.Paginate, err error) {
+	var os []AssetsProgramUpdateRecordModel
 	sql := dao.DB.Model(pur).Where(&am)
 	pg := service.NewPaginate()
 	data, err = pg.GetPageData(page, sql)
@@ -39,14 +39,14 @@ func (pur *AssetsProcessUpdateRecordModel) List(page int, am AssetsProcessUpdate
 	return
 }
 
-func (pur *AssetsProcessUpdateRecordModel) Create(data []AssetsProcessUpdateRecordModel) (err error) {
+func (pur *AssetsProgramUpdateRecordModel) Create(data []AssetsProgramUpdateRecordModel) (err error) {
 	if err = dao.DB.Create(&data).Error; err != nil {
 		return
 	}
 	return
 }
 
-func (pur *AssetsProcessUpdateRecordModel) Update(data map[string]interface{}) (err error) {
+func (pur *AssetsProgramUpdateRecordModel) Update(data map[string]interface{}) (err error) {
 	if err = dao.DB.Model(pur).Where("uuid = ?", data["uuid"].(string)).Updates(data).Error; err != nil {
 		return
 	}
@@ -54,7 +54,7 @@ func (pur *AssetsProcessUpdateRecordModel) Update(data map[string]interface{}) (
 	return
 }
 
-func (pur *AssetsProcessUpdateRecordModel) Del(pid []int32) (err error) {
+func (pur *AssetsProgramUpdateRecordModel) Delete(pid []int32) (err error) {
 	tx := dao.DB.Begin()
 
 	defer func() {
@@ -63,7 +63,7 @@ func (pur *AssetsProcessUpdateRecordModel) Del(pid []int32) (err error) {
 		}
 	}()
 
-	if err = tx.Where("id IN ?", pid).Delete(pur).Error; err != nil {
+	if err = tx.Where("id IN ?", pid).Unscoped().Delete(pur).Error; err != nil {
 		tx.Rollback()
 		return
 	}
@@ -72,7 +72,7 @@ func (pur *AssetsProcessUpdateRecordModel) Del(pid []int32) (err error) {
 
 }
 
-func (pur *AssetsProcessUpdateRecordModel) BeforeSave(tx *gorm.DB) (err error) {
+func (pur *AssetsProgramUpdateRecordModel) BeforeSave(tx *gorm.DB) (err error) {
 	if pur.Start.IsZero() {
 		pur.Start = time.Now()
 	}

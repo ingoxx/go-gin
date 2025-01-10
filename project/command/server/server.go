@@ -6,7 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	pb "github.com/Lxb921006/Gin-bms/project/command/command"
-	"github.com/Lxb921006/Gin-bms/project/utils"
+	"github.com/Lxb921006/Gin-bms/project/command/server/redis"
+	"github.com/Lxb921006/Gin-bms/project/command/server/script"
 	"google.golang.org/grpc"
 	"io"
 	"log"
@@ -16,15 +17,125 @@ import (
 	"path/filepath"
 )
 
+var (
+	savePath = "/opt"
+)
+
 type server struct {
-	pb.UnimplementedStreamUpdateProcessServiceServer
+	pb.UnimplementedStreamUpdateProgramServiceServer
 	pb.UnimplementedFileTransferServiceServer
 }
 
-func (s *server) DockerUpdate(req *pb.StreamRequest, stream pb.StreamUpdateProcessService_DockerUpdateServer) (err error) {
-	log.Println("rev run DockerUpdate")
+type runScriptData struct {
+	req        *pb.StreamRequest
+	stream     pb.StreamUpdateProgramService_DockerUpdateServer
+	program    string
+	programLog string
+}
 
-	file := fmt.Sprintf("sh /root/shellscript/DockerUpdate.sh %s | tee /root/shellscript/DockerUpdate.log", req.GetUuid())
+func (s *server) DockerUpdate(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_DockerUpdateServer) (err error) {
+	log.Println("received DockerUpdate")
+
+	data := runScriptData{
+		req:        req,
+		stream:     stream,
+		program:    script.DockerUpdateScript,
+		programLog: script.DockerUpdateLog,
+	}
+
+	if err = s.scriptOutPut(data); err != nil {
+		if err = data.stream.Send(&pb.StreamReply{Message: fmt.Sprintf("fail to run DockerUpdate, errMsg: %s\n", err.Error())}); err != nil {
+			log.Printf("fail to run send msg, errMsg: %s\n", err.Error())
+		}
+		return
+	}
+
+	return
+}
+
+func (s *server) DockerUpdateLog(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_DockerUpdateLogServer) (err error) {
+	log.Println("received DockerUpdateLog")
+
+	cmd := exec.Command("more", script.DockerUpdateLog, req.GetUuid())
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return
+	}
+
+	if err = cmd.Start(); err != nil {
+		return
+	}
+
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		if err = stream.Send(&pb.StreamReply{Message: scanner.Text()}); err != nil {
+			return
+		}
+	}
+
+	if err = cmd.Wait(); err != nil {
+		return
+	}
+
+	return
+}
+
+func (s *server) JavaUpdateLog(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_JavaUpdateLogServer) (err error) {
+	log.Println("received JavaUpdateLog")
+
+	cmd := exec.Command("more", script.JavaUpdateLog, req.GetUuid())
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return
+	}
+
+	if err = cmd.Start(); err != nil {
+		return
+	}
+
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		if err = stream.Send(&pb.StreamReply{Message: scanner.Text()}); err != nil {
+			return
+		}
+	}
+
+	if err = cmd.Wait(); err != nil {
+		return
+	}
+
+	return
+}
+
+func (s *server) JavaUpdate(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_JavaUpdateServer) (err error) {
+	log.Println("received JavaUpdate")
+
+	data := runScriptData{
+		req:        req,
+		stream:     stream,
+		program:    script.JavaUpdateScript,
+		programLog: script.JavaUpdateLog,
+	}
+
+	if err = s.scriptOutPut(data); err != nil {
+		if err = data.stream.Send(&pb.StreamReply{Message: fmt.Sprintf("fail to run JavaUpdate, errMsg: %s\n", err.Error())}); err != nil {
+			log.Printf("fail to run send msg, errMsg: %s\n", err.Error())
+		}
+		return
+	}
+
+	return
+}
+
+func (s *server) scriptOutPut(data runScriptData) (err error) {
+	if _, err = os.Open(data.program); err != nil {
+		if err = data.stream.Send(&pb.StreamReply{Message: err.Error()}); err != nil {
+			return
+		}
+		return
+	}
+
+	file := fmt.Sprintf("sh %s %s | tee %s", data.program, data.req.GetUuid(), data.programLog)
 	cmd := exec.Command("sh", "-c", file)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -37,7 +148,7 @@ func (s *server) DockerUpdate(req *pb.StreamRequest, stream pb.StreamUpdateProce
 
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
-		if err = stream.Send(&pb.StreamReply{Message: scanner.Text()}); err != nil {
+		if err = data.stream.Send(&pb.StreamReply{Message: scanner.Text()}); err != nil {
 			return
 		}
 	}
@@ -49,96 +160,15 @@ func (s *server) DockerUpdate(req *pb.StreamRequest, stream pb.StreamUpdateProce
 	return
 }
 
-func (s *server) DockerUpdateLog(req *pb.StreamRequest, stream pb.StreamUpdateProcessService_DockerUpdateLogServer) (err error) {
-	log.Println("rev run DockerUpdateLog")
-
-	cmd := exec.Command("more", "/root/shellscript/DockerUpdate.log", req.GetUuid())
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return
-	}
-
-	if err = cmd.Start(); err != nil {
-		return
-	}
-
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		if err = stream.Send(&pb.StreamReply{Message: scanner.Text()}); err != nil {
-			return
-		}
-	}
-
-	if err = cmd.Wait(); err != nil {
-		return
-	}
-
+func (s *server) DockerReload(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_DockerReloadServer) (err error) {
 	return
 }
 
-func (s *server) JavaUpdateLog(req *pb.StreamRequest, stream pb.StreamUpdateProcessService_JavaUpdateLogServer) (err error) {
-	log.Println("rev run JavaUpdateLog")
-
-	cmd := exec.Command("more", "/root/shellscript/JavaUpdate.log", req.GetUuid())
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return
-	}
-
-	if err = cmd.Start(); err != nil {
-		return
-	}
-
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		if err = stream.Send(&pb.StreamReply{Message: scanner.Text()}); err != nil {
-			return
-		}
-	}
-
-	if err = cmd.Wait(); err != nil {
-		return
-	}
-
+func (s *server) JavaReload(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_JavaReloadServer) (err error) {
 	return
 }
 
-func (s *server) JavaUpdate(req *pb.StreamRequest, stream pb.StreamUpdateProcessService_JavaUpdateServer) (err error) {
-	log.Println("rev run JavaUpdate")
-
-	file := fmt.Sprintf("sh /root/shellscript/JavaUpdate.sh %s | tee /root/shellscript/JavaUpdate.log", req.GetUuid())
-	cmd := exec.Command("sh", "-c", file)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return
-	}
-
-	if err = cmd.Start(); err != nil {
-		return
-	}
-
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		if err = stream.Send(&pb.StreamReply{Message: scanner.Text()}); err != nil {
-			return
-		}
-	}
-
-	if err = cmd.Wait(); err != nil {
-		return
-	}
-
-	return
-}
-
-func (s *server) DockerReload(req *pb.StreamRequest, stream pb.StreamUpdateProcessService_DockerReloadServer) (err error) {
-	return
-}
-
-func (s *server) JavaReload(req *pb.StreamRequest, stream pb.StreamUpdateProcessService_JavaReloadServer) (err error) {
-	return
-}
-
+// SendFile 接收文件并返回文件md5
 func (s *server) SendFile(stream pb.FileTransferService_SendFileServer) (err error) {
 	if err = s.ProcessMsg(stream); err != nil {
 		log.Println(err)
@@ -149,8 +179,10 @@ func (s *server) SendFile(stream pb.FileTransferService_SendFileServer) (err err
 
 func (s *server) ProcessMsg(stream pb.FileTransferService_SendFileServer) (err error) {
 	var file string
+	var msg string
+	var ip string
 	var chunks [][]byte
-	path := "/opt"
+	var fileTmp = filepath.Join(savePath, file+".tmp")
 
 	for {
 		resp, err := stream.Recv()
@@ -159,45 +191,62 @@ func (s *server) ProcessMsg(stream pb.FileTransferService_SendFileServer) (err e
 		}
 
 		if file == "" {
-			log.Println("rec file >>>", resp.GetName())
-			file = filepath.Join(path, resp.GetName())
+			file = filepath.Join(savePath, resp.GetName())
 		}
 
+		if ip == "" {
+			ip = resp.GetIp()
+		}
 		chunks = append(chunks, resp.Byte)
 	}
 
-	_, err = os.Stat(file)
+	log.Println("received file: ", filepath.Base(file))
+
+	fw, err := os.Create(fileTmp)
 	if err != nil {
-		fw, err := os.Create(file)
-		if err != nil {
-			utils.Error(err.Error())
-		}
-		defer fw.Close()
-
-		nw := bufio.NewWriter(fw)
-
-		for _, chunk := range chunks {
-			_, err := nw.Write(chunk)
-			if err != nil {
-				utils.Error(err.Error())
-			}
-		}
-
-		nw.Flush()
+		s.send(err.Error(), stream)
+		return
 	}
 
-	m, _ := s.FileMd5(file)
+	defer fw.Close()
 
-	if err = stream.Send(&pb.FileMessage{Byte: []byte("md5"), Name: filepath.Base(file) + "|" + m}); err != nil {
-		utils.Error(err.Error())
+	nw := bufio.NewWriter(fw)
+	for _, chunk := range chunks {
+		if _, err = nw.Write(chunk); err != nil {
+			s.send(err.Error(), stream)
+			return
+		}
+	}
+	nw.Flush()
+
+	if s.comparison(file, fileTmp) {
+		msg = fmt.Sprintf("%s|%s, same md5, no need to update", filepath.Base(file), s.fileMd5(file))
+		s.send(msg, stream)
+		return
 	}
 
-	log.Printf("%s %s send ok", file, m)
+	if err = os.Rename(fileTmp, file); err != nil {
+		s.send(err.Error(), stream)
+		return
+	}
+
+	msg = fmt.Sprintf("%s|%s", filepath.Base(file), s.fileMd5(file))
+	s.send(msg, stream)
 
 	return
 }
 
-func (s *server) FileMd5(file string) (m5 string, err error) {
+func (s *server) send(msg string, stream pb.FileTransferService_SendFileServer) {
+	if err := stream.Send(&pb.FileMessage{Byte: []byte("md5"), Name: msg}); err != nil {
+		log.Println(err.Error())
+	}
+}
+
+func (s *server) comparison(src, dst string) bool {
+	return s.fileMd5(src) == s.fileMd5(dst)
+}
+
+func (s *server) fileMd5(file string) (m5 string) {
 	f, err := os.Open(file)
 	if err != nil {
 		return
@@ -215,18 +264,22 @@ func (s *server) FileMd5(file string) (m5 string, err error) {
 	return
 }
 
+// failList 如果文件重命名覆盖失败就记录，当前端执行更新操作时就可以忽略掉当前的服务器
+func (s *server) failList(ip string) {
+}
+
 func main() {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 12306))
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Fatalln(fmt.Sprintf("failed to listen 12306, errMsg: %v", err))
 	}
 
-	utils.SetLogFile("./rpc_file.log")
-	utils.SetLogLevel(utils.ErrorLevel)
+	if err = redis.InitPoolRdb(); err != nil {
+		log.Fatalln(fmt.Sprintf("failed to connect redis, errMsg: %s", err.Error()))
+	}
 
 	s := grpc.NewServer()
-
-	pb.RegisterStreamUpdateProcessServiceServer(s, &server{})
+	pb.RegisterStreamUpdateProgramServiceServer(s, &server{})
 	pb.RegisterFileTransferServiceServer(s, &server{})
 
 	log.Printf("server listening at %v", lis.Addr())

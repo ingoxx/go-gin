@@ -7,6 +7,7 @@ type program struct {
 	Value  string `json:"value"`
 	Kind   int    `json:"type"`
 	Load   bool   `json:"load"`
+	Path   string `json:"path"`
 }
 
 type ProgramConfig struct {
@@ -24,6 +25,7 @@ func NewProgramConfig() *ProgramConfig {
 				Value:  "dockerUpdate",
 				Kind:   1,
 				Load:   false,
+				Path:   "/assets/dockerupdate",
 			},
 			{
 				Name:   "java更新",
@@ -32,6 +34,7 @@ func NewProgramConfig() *ProgramConfig {
 				Value:  "javaUpdate",
 				Kind:   1,
 				Load:   false,
+				Path:   "/assets/javaupdate",
 			},
 			{
 				Name:   "重启docker",
@@ -40,6 +43,7 @@ func NewProgramConfig() *ProgramConfig {
 				Value:  "dockerReload",
 				Kind:   2,
 				Load:   false,
+				Path:   "/assets/dockerupdate",
 			},
 			{
 				Name:   "重启java",
@@ -48,6 +52,7 @@ func NewProgramConfig() *ProgramConfig {
 				Value:  "javaReload",
 				Kind:   2,
 				Load:   false,
+				Path:   "/assets/javareboot",
 			},
 		},
 		Select: map[string]string{

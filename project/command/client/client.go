@@ -6,6 +6,7 @@ import (
 	"fmt"
 	pb "github.com/Lxb921006/Gin-bms/project/command/command"
 	"github.com/Lxb921006/Gin-bms/project/command/rpcConfig"
+	"github.com/Lxb921006/Gin-bms/project/logger"
 	"github.com/gorilla/websocket"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -15,17 +16,18 @@ import (
 	"sync"
 )
 
-type RpcClient struct {
+type GrpcClient struct {
 	Name    string
 	Uuid    string
 	File    string
 	RpcConn *grpc.ClientConn
 	WsConn  *websocket.Conn
 	ctx     context.Context
+	lock    *sync.Mutex
 }
 
-func NewRpcClient(name, uuid string, ws *websocket.Conn, rc *grpc.ClientConn) *RpcClient {
-	return &RpcClient{
+func NewGrpcClient(name, uuid string, ws *websocket.Conn, rc *grpc.ClientConn) *GrpcClient {
+	return &GrpcClient{
 		Name:    name,
 		Uuid:    uuid,
 		WsConn:  ws,
@@ -33,33 +35,47 @@ func NewRpcClient(name, uuid string, ws *websocket.Conn, rc *grpc.ClientConn) *R
 	}
 }
 
-func (rc *RpcClient) Send() (err error) {
+func (rc *GrpcClient) Send() (err error) {
+	c := pb.NewStreamUpdateProgramServiceClient(rc.RpcConn)
 	switch rc.Name {
 	case "dockerUpdate":
-		if err = rc.DockerUpdate(); err != nil {
+		if err = rc.DockerUpdate(c); err != nil {
 			return err
 		}
 	case "javaUpdate":
-		if err = rc.JavaUpdate(); err != nil {
+		if err = rc.JavaUpdate(c); err != nil {
 			return err
 		}
 	case "dockerUpdateLog":
-		if err = rc.DockerUpdateLog(); err != nil {
+		if err = rc.DockerUpdateLog(c); err != nil {
 			return err
 		}
 	case "javaUpdateLog":
-		if err = rc.JavaUpdateLog(); err != nil {
+		if err = rc.JavaUpdateLog(c); err != nil {
 			return err
 		}
 	default:
-		return errors.New("无效操作")
+		if err = rc.sendErr(); err != nil {
+			logger.Error(fmt.Sprintf("sendErr errMsg: %s", err.Error()))
+		}
 	}
 
 	return
 }
 
-func (rc *RpcClient) DockerUpdate() (err error) {
-	c := pb.NewStreamUpdateProcessServiceClient(rc.RpcConn)
+func (rc *GrpcClient) sendErr() (err error) {
+	if rc.WsConn == nil {
+		return errors.New("websocket已经关闭")
+	}
+
+	if err = rc.WsConn.WriteMessage(1, []byte(fmt.Sprintf("%s\n", err.Error()))); err != nil {
+		return err
+	}
+
+	return
+}
+
+func (rc *GrpcClient) DockerUpdate(c pb.StreamUpdateProgramServiceClient) (err error) {
 	stream, err := c.DockerUpdate(context.Background(), &pb.StreamRequest{Uuid: rc.Uuid})
 	if err != nil {
 		return
@@ -83,8 +99,7 @@ func (rc *RpcClient) DockerUpdate() (err error) {
 	return
 }
 
-func (rc *RpcClient) DockerUpdateLog() (err error) {
-	c := pb.NewStreamUpdateProcessServiceClient(rc.RpcConn)
+func (rc *GrpcClient) DockerUpdateLog(c pb.StreamUpdateProgramServiceClient) (err error) {
 	stream, err := c.DockerUpdateLog(context.Background(), &pb.StreamRequest{Uuid: rc.Uuid})
 	if err != nil {
 		return
@@ -108,8 +123,7 @@ func (rc *RpcClient) DockerUpdateLog() (err error) {
 	return
 }
 
-func (rc *RpcClient) JavaUpdate() (err error) {
-	c := pb.NewStreamUpdateProcessServiceClient(rc.RpcConn)
+func (rc *GrpcClient) JavaUpdate(c pb.StreamUpdateProgramServiceClient) (err error) {
 	stream, err := c.JavaUpdate(context.Background(), &pb.StreamRequest{Uuid: rc.Uuid})
 	if err != nil {
 		return
@@ -132,8 +146,7 @@ func (rc *RpcClient) JavaUpdate() (err error) {
 	return
 }
 
-func (rc *RpcClient) JavaUpdateLog() (err error) {
-	c := pb.NewStreamUpdateProcessServiceClient(rc.RpcConn)
+func (rc *GrpcClient) JavaUpdateLog(c pb.StreamUpdateProgramServiceClient) (err error) {
 	stream, err := c.JavaUpdateLog(context.Background(), &pb.StreamRequest{Uuid: rc.Uuid})
 	if err != nil {
 		return
@@ -149,7 +162,6 @@ func (rc *RpcClient) JavaUpdateLog() (err error) {
 			if err = rc.WsConn.WriteMessage(1, []byte(fmt.Sprintf("%s\n", resp.Message))); err != nil {
 				return err
 			}
-
 		}
 
 	}
@@ -157,8 +169,7 @@ func (rc *RpcClient) JavaUpdateLog() (err error) {
 	return
 }
 
-// 分发文件
-type SyncFileRpcClient struct {
+type SyncFileClient struct {
 	Ip      []string
 	File    []string
 	RpcConn *grpc.ClientConn
@@ -166,10 +177,11 @@ type SyncFileRpcClient struct {
 	ctx     context.Context
 	wg      sync.WaitGroup
 	resChan chan string
+	lock    *sync.Mutex
 }
 
-func NewSyncFileRpcClient(ip, file []string, ws *websocket.Conn) *SyncFileRpcClient {
-	return &SyncFileRpcClient{
+func NewSyncFileRpcClient(ip, file []string, ws *websocket.Conn) *SyncFileClient {
+	return &SyncFileClient{
 		Ip:      ip,
 		File:    file,
 		WsConn:  ws,
@@ -177,14 +189,14 @@ func NewSyncFileRpcClient(ip, file []string, ws *websocket.Conn) *SyncFileRpcCli
 	}
 }
 
-func (sfrc *SyncFileRpcClient) Run() (err error) {
-	for _, file := range sfrc.File {
-		for _, ip := range sfrc.Ip {
-			sfrc.wg.Add(1)
+func (sfc *SyncFileClient) Run() (err error) {
+	for _, file := range sfc.File {
+		for _, ip := range sfc.Ip {
+			sfc.wg.Add(1)
 			go func(ip, file string) {
 				file = filepath.Join(rpcConfig.UploadPath, file)
-				if err = sfrc.Send(ip, file); err != nil {
-					if err = sfrc.ReturnWsData(fmt.Sprintf("%s\n", err.Error())); err != nil {
+				if err = sfc.Send(ip, file); err != nil {
+					if err1 := sfc.ReturnWsData(fmt.Sprintf("%s\n", err.Error())); err1 != nil {
 						return
 					}
 				}
@@ -193,29 +205,29 @@ func (sfrc *SyncFileRpcClient) Run() (err error) {
 	}
 
 	go func() {
-		sfrc.wg.Wait()
-		close(sfrc.resChan)
+		sfc.wg.Wait()
+		close(sfc.resChan)
 	}()
 
-	for data := range sfrc.resChan {
-		if err = sfrc.ReturnWsData(fmt.Sprintf("%s\n", data)); err != nil {
+	for data := range sfc.resChan {
+		if err = sfc.ReturnWsData(fmt.Sprintf("%s\n", data)); err != nil {
 			return
 		}
-
 	}
 
 	return
 }
 
-func (sfrc *SyncFileRpcClient) ReturnWsData(data string) (err error) {
-	if err = sfrc.WsConn.WriteMessage(1, []byte(data)); err != nil {
+func (sfc *SyncFileClient) ReturnWsData(data string) (err error) {
+	if err = sfc.WsConn.WriteMessage(1, []byte(data)); err != nil {
 		return
 	}
 	return
 }
 
-func (sfrc *SyncFileRpcClient) Send(ip, file string) (err error) {
-	defer sfrc.wg.Done()
+func (sfc *SyncFileClient) Send(ip, file string) (err error) {
+	defer sfc.wg.Done()
+
 	server := fmt.Sprintf("%s:12306", ip)
 
 	conn, err := grpc.Dial(server, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -252,7 +264,7 @@ func (sfrc *SyncFileRpcClient) Send(ip, file string) (err error) {
 			break
 		}
 
-		if err = stream.Send(&pb.FileMessage{Byte: buffer[:b], Name: filepath.Base(file)}); err != nil {
+		if err = stream.Send(&pb.FileMessage{Byte: buffer[:b], Name: filepath.Base(file), Ip: ip}); err != nil {
 			return err
 		}
 	}
@@ -269,7 +281,7 @@ func (sfrc *SyncFileRpcClient) Send(ip, file string) (err error) {
 			return err
 		}
 
-		sfrc.resChan <- ip + "-" + resp.GetName()
+		sfc.resChan <- ip + "-" + resp.GetName()
 	}
 
 	return

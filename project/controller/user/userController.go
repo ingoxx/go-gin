@@ -23,6 +23,7 @@ type CreateUserForm struct {
 	Tel        int    `json:"tel" form:"tel" binding:"required" validate:"min=1500000"`
 	Isopenga   uint   `json:"isopenga" form:"isopenga"`
 	Isopenqr   uint   `json:"isopenqr" form:"isopenqr"`
+	MfaApp     uint   `json:"mfa_app" form:"mfa_app"`
 	Password   string `json:"password" form:"password" binding:"required"`
 	RePassword string `json:"rePassword" form:"rePassword" binding:"required" validate:"eqfield=Password"`
 }
@@ -35,6 +36,7 @@ type UpdateUserForm struct {
 	Rid        uint   `json:"rid" form:"rid" binding:"required"`
 	Isopenga   uint   `json:"isopenga" form:"isopenga"`
 	Isopenqr   uint   `json:"isopenqr" form:"isopenqr"`
+	MfaApp     uint   `json:"mfa_app" form:"mfa_app"`
 }
 
 type DelUserByIdJson struct {
@@ -220,7 +222,6 @@ func GetUsersByPaginate(ctx *gin.Context) {
 		return
 	}
 
-	//var validate = validator.New()
 	var vd = NewValidateData(validate)
 	if err := pd.PaginateLogic(u, vd); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{

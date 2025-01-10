@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/Lxb921006/Gin-bms/project/dao"
+	"github.com/Lxb921006/Gin-bms/project/errors"
 	"github.com/Lxb921006/Gin-bms/project/service"
 
 	"gorm.io/gorm"
@@ -60,7 +61,7 @@ func (p *Permission) GetAllPerms() ([]Permission, error) {
 	}
 
 	if len(perms) == 0 {
-		return perms, ErrEmptyPermList
+		return perms, errors.ErrEmptyPermList
 	}
 
 	return perms, nil

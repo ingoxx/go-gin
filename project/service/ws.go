@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/websocket"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"log"
 )
 
 type Ws struct {
@@ -22,9 +23,14 @@ func NewWs(conn *websocket.Conn) *Ws {
 	}
 }
 
+func (ws *Ws) Error(err error) {
+	if Err := ws.Conn.WriteMessage(1, []byte(fmt.Sprintf("%s", err.Error()))); Err != nil {
+		log.Println(fmt.Sprintf("Ws writeMessage errMsg: %s", Err.Error()))
+	}
+}
+
 func (ws *Ws) Run() (err error) {
 	_, message, err := ws.Conn.ReadMessage()
-
 	if err != nil {
 		return
 	}
@@ -33,8 +39,9 @@ func (ws *Ws) Run() (err error) {
 		return
 	}
 
-	if err = ws.Send(); err != nil {
-		return err
+	if errS := ws.Send(); errS != nil {
+		ws.Error(errS)
+		return
 	}
 
 	return
@@ -47,9 +54,7 @@ func (ws *Ws) Send() (err error) {
 		return
 	}
 
-	defer conn.Close()
-
-	cn := client.NewRpcClient(ws.ProcessName, ws.Uuid, ws.Conn, conn)
+	cn := client.NewGrpcClient(ws.ProcessName, ws.Uuid, ws.Conn, conn)
 	if err = cn.Send(); err != nil {
 		return err
 	}
@@ -85,6 +90,12 @@ func (sfw *SendFileWs) Send() (err error) {
 	}
 
 	return
+}
+
+func (sfw *SendFileWs) Error(err error) {
+	if Err := sfw.Conn.WriteMessage(1, []byte(fmt.Sprintf("%s", err.Error()))); Err != nil {
+		log.Println(fmt.Sprintf("SendFileWs writeMessage errMsg: %s", Err.Error()))
+	}
 }
 
 func ParseJsonToStruct(data []byte, ws interface{}) (err error) {

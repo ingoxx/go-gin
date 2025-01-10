@@ -16,6 +16,7 @@ type Login struct {
 	QrUrl    string `json:"qrurl"`
 	Password string `json:"-"`
 	Token    string `json:"token"`
+	MfaApp   uint   `json:"mfa_app"`
 }
 
 func (l *Login) GaLogin(code, user string) (ui *Login, err error) {
@@ -41,7 +42,7 @@ func (l *Login) GaLogin(code, user string) (ui *Login, err error) {
 	}
 
 	//用户扫完码就关闭qr
-	if l.Isopenqr == 1 {
+	if l.Isopenqr == 1 || l.MfaApp == 1 {
 		if err = l.CloseGoogleAuthQr(user); err != nil {
 			return
 		}
@@ -143,6 +144,11 @@ func (l *Login) CloseGoogleAuthQr(u string) (err error) {
 	}()
 
 	if err = tx.Model(&User{}).Where("name = ?", u).Update("isopenqr", 2).Error; err != nil {
+		tx.Rollback()
+		return
+	}
+
+	if err = tx.Model(&User{}).Where("name = ?", u).Update("mfa_app", 2).Error; err != nil {
 		tx.Rollback()
 		return
 	}

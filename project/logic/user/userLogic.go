@@ -25,12 +25,6 @@ func (ul *UserListQuery) PaginateLogic(u model.User, api api.Api) (err error) {
 		return
 	}
 
-	//u.Name = ul.Name
-	//u.Email = ul.Email
-	//u.Tel, _ = strconv.Atoi(ul.Tel)
-	//u.Isopenga = ul.Isopenga
-	//u.Isopenqr = ul.Isopenqr
-
 	if err = mapstructure.Decode(ul, &u); err != nil {
 		return
 	}

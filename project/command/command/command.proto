@@ -11,9 +11,10 @@ service FileTransferService {
 message FileMessage {
   bytes byte = 1;
   string name = 2;
+  string ip = 3;
 }
 
-service StreamUpdateProcessService {
+service StreamUpdateProgramService {
   rpc DockerUpdate (StreamRequest) returns (stream StreamReply) {}
   rpc JavaUpdate (StreamRequest) returns (stream StreamReply) {}
   rpc DockerReload (StreamRequest) returns (stream StreamReply) {}

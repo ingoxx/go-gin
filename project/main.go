@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Lxb921006/Gin-bms/project/logger"
 	"github.com/Lxb921006/Gin-bms/project/migrate"
 	"log"
 
@@ -37,4 +38,7 @@ func main() {
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
+
+	logger.SetLogFile("./rpc_file.Log")
+	logger.SetLogLevel(logger.ErrorLevel)
 }

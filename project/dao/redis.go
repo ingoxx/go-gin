@@ -28,13 +28,12 @@ func InitPoolRds() (err error) {
 		MinIdleConns: 5,
 		PoolSize:     30,
 		PoolTimeout:  30 * time.Second,
-		DialTimeout:  1 * time.Second,
+		DialTimeout:  10 * time.Second,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	})
 
-	_, err = RdPool.Ping().Result()
-	return
+	return RdPool.Ping().Err()
 }
 
 type Md struct {
@@ -105,8 +104,8 @@ func (r *RedisDb) ClearToken(user string) (err error) {
 	return
 }
 
-// 很简单很简单的限流功能，每秒只能接收20次访问，超过5次返回502并需要等待10秒后才能访问
-func (r *RedisDb) Visitlimit(host string) (err error) {
+// ReqFrequencyLimit 简单的限流功能，每秒只能接收5次访问，超过5次返回502并需要等待10秒后才能访问
+func (r *RedisDb) ReqFrequencyLimit(host string) (err error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 

@@ -8,6 +8,6 @@ import (
 
 func LoginRouter(r *gin.Engine) {
 	r.POST("/login", lc.Login)
-	r.POST("/galogin", lc.Galogin)
+	r.POST("/galogin", lc.MFAVerify)
 	r.POST("/logout", lc.Logout)
 }

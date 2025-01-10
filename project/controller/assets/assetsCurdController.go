@@ -5,7 +5,6 @@ import (
 	"github.com/Lxb921006/Gin-bms/project/service"
 	"github.com/Lxb921006/Gin-bms/project/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 )
 
 //资产列表的crud-1
@@ -22,7 +21,7 @@ func (a *AssetsListForm) List(ctx *gin.Context) (data *service.Paginate, err err
 		return
 	}
 
-	validate := validator.New()
+	//validate := validator.New()
 	vd := NewValidateData(validate)
 	if err = vd.ValidateStruct(a); err != nil {
 		return
@@ -78,7 +77,7 @@ func (a *AssetsDelForm) Del(ctx *gin.Context) (err error) {
 		return
 	}
 
-	if err = am.Del(a.Ips); err != nil {
+	if err = am.Delete(a.Ips); err != nil {
 		return
 	}
 
@@ -102,7 +101,7 @@ func (aef *AssetsModifyForm) Modify(ctx *gin.Context) (err error) {
 	data["ip"] = aef.Ip
 	data["project"] = aef.Project
 
-	if err = am.Modify(data); err != nil {
+	if err = am.Update(data); err != nil {
 		return
 	}
 

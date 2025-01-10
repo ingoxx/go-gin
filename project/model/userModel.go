@@ -18,6 +18,7 @@ type User struct {
 	Roles    []Role `json:"roles" gorm:"many2many:role_users"`
 	Isopenga uint   `json:"isopenga" gorm:"default:1"`
 	Isopenqr uint   `json:"isopenqr" gorm:"default:1"`
+	MfaApp   uint   `json:"mfa_app" gorm:"default:1;comment:1-打开,2-关闭"`
 }
 
 func (u *User) AddUser(au User, rid uint) (err error) {
