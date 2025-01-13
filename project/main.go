@@ -10,6 +10,9 @@ import (
 )
 
 func main() {
+	logger.SetLogFile("./server.log")
+	logger.SetLogLevel(logger.ErrorLevel)
+
 	//初始化mysql
 	err := dao.InitPoolMysql()
 	if err != nil {
@@ -39,6 +42,4 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
-	logger.SetLogFile("./rpc_file.Log")
-	logger.SetLogLevel(logger.ErrorLevel)
 }

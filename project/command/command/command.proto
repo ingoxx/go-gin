@@ -27,6 +27,12 @@ service StreamUpdateProgramService {
 // The request message containing the user's name. 1代表的是id在一个message 里边是唯一的, 不能重复
 message StreamRequest {
   string uuid = 1;
+  ReqToken token = 2;
+}
+
+message ReqToken {
+  string user = 1;
+  string token = 2;
 }
 
 // The response message containing the greetings

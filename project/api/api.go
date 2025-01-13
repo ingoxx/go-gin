@@ -7,3 +7,7 @@ type Api interface {
 type CeleryInterface interface {
 	Data() (data map[string]interface{}, err error)
 }
+
+type ModelCurd interface {
+	Update(data map[string]interface{}) (err error)
+}

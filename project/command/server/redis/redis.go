@@ -1,7 +1,7 @@
 package redis
 
 import (
-	"github.com/Lxb921006/Gin-bms/project/config"
+	"errors"
 	"github.com/go-redis/redis"
 	"time"
 )
@@ -12,9 +12,9 @@ var (
 
 func InitPoolRdb() (err error) {
 	Rdb = redis.NewClient(&redis.Options{
-		Addr:         config.RedisConAddre,
-		DB:           config.RedisUserDb,
-		Password:     config.RedisPwd,
+		Addr:         RedisConAddre,
+		DB:           RedisUserDb,
+		Password:     RedisPwd,
 		MinIdleConns: 5,
 		PoolSize:     30,
 		PoolTimeout:  30 * time.Second,
@@ -39,4 +39,19 @@ func (r *RdbOp) Get() {}
 
 func (r *RdbOp) Del() {}
 
-func (r *RdbOp) Check() {}
+func (r *RdbOp) Check() {
+}
+
+func (r *RdbOp) ReqVerify(user, token string) (err error) {
+	getToken, err := Rdb.Get(user).Result()
+	if err != nil {
+		return
+	}
+
+	if getToken != token {
+		err = errors.New("token验证失败")
+		return
+	}
+
+	return
+}

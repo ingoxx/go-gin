@@ -5,6 +5,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -41,7 +42,9 @@ func SetLogFile(file string) {
 	currentDay = time.Now().YearDay()
 
 	logFile = file
-	newLogFile := file + "_" + time.Now().Format("20060102")
+	splitLogFile := strings.Split(file, ".log")
+	newLogFile := splitLogFile[0] + "_" + time.Now().Format("20060102") + ".log"
+
 	logFs, err = os.OpenFile(newLogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0777)
 	if err != nil {
 		log.Fatal(err)

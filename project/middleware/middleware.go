@@ -9,8 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// 中间件
-// 允许跨域访问
 func AllowCos() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 
@@ -43,7 +41,7 @@ func TokenVerify() gin.HandlerFunc {
 			})
 			ctx.Abort()
 		} else {
-			if err := dao.Rds.RquestVerify(user, token); err == nil {
+			if err := dao.Rds.RequestVerify(user, token); err == nil {
 				ctx.Next()
 			} else {
 				ctx.JSON(http.StatusBadGateway, gin.H{
@@ -107,7 +105,7 @@ func PermsVerify() gin.HandlerFunc {
 func ReqFrequencyLimit() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if err := dao.Rds.ReqFrequencyLimit(ctx.Request.Host); err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{
+			ctx.JSON(http.StatusForbidden, gin.H{
 				"message": err.Error(),
 			})
 			ctx.Abort()

@@ -268,6 +268,17 @@ func (s *server) fileMd5(file string) (m5 string) {
 func (s *server) failList(ip string) {
 }
 
+// grpc请求验证
+func (s *server) verify(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_JavaReloadServer) (err error) {
+	if err = redis.NewRdbOp().ReqVerify("lxb", "ttt"); err != nil {
+		if err = stream.Send(&pb.StreamReply{Message: err.Error()}); err != nil {
+			return
+		}
+		return
+	}
+	return
+}
+
 func main() {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 12306))
 	if err != nil {

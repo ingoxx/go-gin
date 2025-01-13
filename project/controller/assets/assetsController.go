@@ -30,7 +30,8 @@ func RunProgramController(ctx *gin.Context) {
 
 	defer conn.Close()
 
-	if err = service.NewWs(conn).Run(); err != nil {
+	var aprm model.AssetsProgramUpdateRecordModel
+	if err = service.NewWs(conn, &aprm).Run(); err != nil {
 		return
 	}
 
@@ -51,6 +52,7 @@ func SyncFileController(ctx *gin.Context) {
 
 }
 
+// RunProgramApiController 程序更新
 func RunProgramApiController(ctx *gin.Context) {
 	var ps RunProgramApiForm
 	if err := ps.Run(ctx); err != nil {
