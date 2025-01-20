@@ -129,14 +129,20 @@ func (s *server) JavaUpdate(req *pb.StreamRequest, stream pb.StreamUpdateProgram
 
 func (s *server) scriptOutPut(data runScriptData) (err error) {
 	if _, err = os.Open(data.program); err != nil {
-		if err = data.stream.Send(&pb.StreamReply{Message: err.Error()}); err != nil {
+		if err = data.stream.Send(&pb.StreamReply{Message: fmt.Sprintf("%s, %s not found, errMsg: %s", data.req.Ip, data.program, err.Error())}); err != nil {
 			return
 		}
 		return
 	}
 
-	file := fmt.Sprintf("sh %s %s | tee %s", data.program, data.req.GetUuid(), data.programLog)
-	cmd := exec.Command("sh", "-c", file)
+	var makeCmd string
+	if data.req.GetUuid() != "" {
+		makeCmd = fmt.Sprintf("sh %s %s | tee %s", data.program, data.req.GetUuid(), data.programLog)
+	} else if data.req.GetCmd() != "" {
+		makeCmd = fmt.Sprintf("sh %s \"%s\" | tee %s", data.program, data.req.GetCmd(), data.programLog)
+	}
+
+	cmd := exec.Command("sh", "-c", makeCmd)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return
@@ -165,6 +171,26 @@ func (s *server) DockerReload(req *pb.StreamRequest, stream pb.StreamUpdateProgr
 }
 
 func (s *server) JavaReload(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_JavaReloadServer) (err error) {
+	return
+}
+
+func (s *server) RunLinuxCmd(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_DockerUpdateServer) (err error) {
+	log.Println("received RunLinuxCmd")
+
+	data := runScriptData{
+		req:        req,
+		stream:     stream,
+		program:    script.RunLinuxCmd,
+		programLog: script.RunLinuxCmdLog,
+	}
+
+	if err = s.scriptOutPut(data); err != nil {
+		if err = data.stream.Send(&pb.StreamReply{Message: fmt.Sprintf("%s fail to run %s, errMsg: %s\n", req.GetIp(), data.program, err.Error())}); err != nil {
+			log.Printf("fail to run send msg, errMsg: %s\n", err.Error())
+		}
+		return
+	}
+
 	return
 }
 

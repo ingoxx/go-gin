@@ -3,6 +3,8 @@ package model
 import (
 	"errors"
 	"fmt"
+	ginErr "github.com/Lxb921006/Gin-bms/project/errors"
+	"github.com/Lxb921006/Gin-bms/project/utils/encryption"
 
 	"github.com/Lxb921006/Gin-bms/project/dao"
 	"github.com/Lxb921006/Gin-bms/project/service"
@@ -20,18 +22,25 @@ type Login struct {
 }
 
 func (l *Login) GaLogin(code, user string) (ui *Login, err error) {
+	if err = dao.Rds.ForbiddenLogin(user + "-lm-ga"); err != nil {
+		return nil, ginErr.NewForForbiddenError(err.Error())
+	}
+
 	key, err := dao.Rds.GetGaKey(user)
 	if err != nil {
 		return
 	}
 
 	gas := service.NewGoogleAuthenticator(key)
-	gacode, err := gas.GaCode()
+	gaCode, err := gas.GaCode()
 	if err != nil {
 		return
 	}
 
-	if gacode != code {
+	if gaCode != code {
+		if err = dao.Rds.RecordLoginFailedNum(user + "-lm-ga"); err != nil {
+			return
+		}
 		err = errors.New("验证失败")
 		return
 	}
@@ -64,12 +73,12 @@ func (l *Login) UserLogin(u, p string) (ui *Login, err error) {
 		return
 	}
 
-	isga, err := l.IsOpenGoogleAuth(u)
+	isGa, err := l.IsOpenGoogleAuth(u)
 	if err != nil {
 		return
 	}
 
-	if isga {
+	if isGa {
 		ui = l
 		return
 	}
@@ -97,14 +106,23 @@ func (l *Login) Authenticate(u, p string) (err error) {
 		return
 	}
 
-	if l.Name != u {
-		err = fmt.Errorf("该用户%s不存在", u)
-		return
+	if err = dao.Rds.ForbiddenLogin(u + "-lm"); err != nil {
+		return ginErr.NewForForbiddenError(err.Error())
 	}
 
-	if l.Password != p {
-		err = errors.New("密码错误")
-		return
+	if l.Name != u {
+		if err = dao.Rds.RecordLoginFailedNum(u + "-lm"); err != nil {
+			return
+		}
+		return fmt.Errorf("用户%s不存在", u)
+	}
+
+	if err := encryption.NewDataEncryption(u, p).DecryptionPwd(l.Password); err != nil {
+		if err := dao.Rds.RecordLoginFailedNum(u + "-lm"); err != nil {
+			return err
+		}
+
+		return errors.New("密码错误")
 	}
 
 	return

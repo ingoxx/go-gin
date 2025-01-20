@@ -15,14 +15,13 @@ type ProgramAsyncRunCelery struct {
 }
 
 func NewProgramAsyncRunCelery() *ProgramAsyncRunCelery {
-	var aprm model.AssetsProgramUpdateRecordModel
-	var dataModel = make(map[string]interface{})
-
 	c := &ProgramAsyncRunCelery{
 		Works: make(chan api.CeleryInterface),
 	}
 
 	go func() {
+		var apr model.AssetsProgramUpdateRecordModel
+		var dataModel = make(map[string]interface{})
 		for w := range c.Works {
 			data, err := w.Data()
 			if err != nil {
@@ -32,26 +31,27 @@ func NewProgramAsyncRunCelery() *ProgramAsyncRunCelery {
 
 			dataModel["uuid"] = data["uuid"].(string)
 			dataModel["status"] = 400
+			dataModel["ip"] = data["ip"].(string)
 
 			conn, err := grpc.NewClient(fmt.Sprintf("%s:12306", data["ip"].(string)), grpc.WithTransportCredentials(insecure.NewCredentials()))
-			defer conn.Close()
 			if err != nil {
 				dataModel["status"] = 300
-				if err = aprm.Update(dataModel); err != nil {
-					logger.Error(fmt.Sprintf("uuid: %s, 更新失败, errMsg: %s, 1", data["uuid"].(string), err.Error()))
+				if err := apr.Update(dataModel); err != nil {
+					logger.Error("uuid: %v, 更新失败, errMsg: %s, 1", dataModel["uuid"], err.Error())
 				}
-				logger.Error(fmt.Sprintf("ip: %s, grpc连接失败, errMsg: %s", data["ip"].(string), err.Error()))
+				logger.Error("ip: %v, grpc连接失败, errMsg: %s", dataModel["ip"], err.Error())
 				continue
 			}
 
-			cn := client.NewGrpcClient(data["update_name"].(string), data["uuid"].(string), nil, conn)
+			cn := client.NewGrpcClient(data["update_name"].(string), data["uuid"].(string), "", dataModel["ip"].(string), nil, conn)
 			go func() {
-				if err = cn.Send(); err != nil {
+				if err := cn.SendProgramCmd(); err != nil {
 					dataModel["status"] = 300
-					if err = aprm.Update(dataModel); err != nil {
-						logger.Error(fmt.Sprintf("uuid: %s, 更新失败, errMsg: %s, 2", data["uuid"].(string), err.Error()))
+					if err := apr.Update(dataModel); err != nil {
+						logger.Error("uuid: %v, 更新失败, errMsg: %s, 2", dataModel["uuid"], err.Error())
 					}
-					logger.Error(fmt.Sprintf("ip: %s, grpc发送数据失败, errMsg: %s", data["ip"].(string), err.Error()))
+					logger.Error("uuid: %v, ip: %v, grpc连接失败, errMsg: %s, 2", dataModel["uuid"], dataModel["ip"], err.Error())
+					return
 				}
 			}()
 		}

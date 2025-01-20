@@ -8,12 +8,15 @@ import (
 )
 
 type AssetsModel struct {
-	ID       int64     `json:"id" gorm:"primaryKey"`
-	Ip       string    `json:"ip" gorm:"not null;unique"`
-	Project  string    `json:"project" gorm:"not null"`
-	Status   string    `json:"status" gorm:"default:100"`
-	Operator string    `json:"operator" gorm:"default:lxb"`
-	Start    time.Time `json:"start" gorm:"default:CURRENT_TIMESTAMP;nullable"`
+	ID        int64     `json:"id" gorm:"primaryKey"`
+	Ip        string    `json:"ip" gorm:"not null;unique"`
+	Project   string    `json:"project" gorm:"not null"`
+	Status    int32     `json:"status" gorm:"default:200;comment:100-服务器异常,200-服务器正常"`
+	Operator  string    `json:"operator" gorm:"default:lxb"`
+	RamUsage  int32     `json:"ram_usage" gorm:"default:1"`
+	DiskUsage int32     `json:"disk_usage" gorm:"default:1"`
+	CpuUsage  int32     `json:"cpu_usage"  gorm:"default:1"`
+	Start     time.Time `json:"start" gorm:"default:CURRENT_TIMESTAMP;nullable"`
 }
 
 func (o *AssetsModel) List(page int, am AssetsModel) (data *service.Paginate, err error) {

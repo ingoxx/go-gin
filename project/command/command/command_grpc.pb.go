@@ -115,12 +115,115 @@ var FileTransferService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
+	RunLinuxCmdService_RunLinuxCmdOnce_FullMethodName = "/command.RunLinuxCmdService/RunLinuxCmdOnce"
+)
+
+// RunLinuxCmdServiceClient is the client API for RunLinuxCmdService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type RunLinuxCmdServiceClient interface {
+	RunLinuxCmdOnce(ctx context.Context, in *RunLinuxCmdRequest, opts ...grpc.CallOption) (*RunLinuxCmdReply, error)
+}
+
+type runLinuxCmdServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewRunLinuxCmdServiceClient(cc grpc.ClientConnInterface) RunLinuxCmdServiceClient {
+	return &runLinuxCmdServiceClient{cc}
+}
+
+func (c *runLinuxCmdServiceClient) RunLinuxCmdOnce(ctx context.Context, in *RunLinuxCmdRequest, opts ...grpc.CallOption) (*RunLinuxCmdReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RunLinuxCmdReply)
+	err := c.cc.Invoke(ctx, RunLinuxCmdService_RunLinuxCmdOnce_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// RunLinuxCmdServiceServer is the server API for RunLinuxCmdService service.
+// All implementations must embed UnimplementedRunLinuxCmdServiceServer
+// for forward compatibility.
+type RunLinuxCmdServiceServer interface {
+	RunLinuxCmdOnce(context.Context, *RunLinuxCmdRequest) (*RunLinuxCmdReply, error)
+	mustEmbedUnimplementedRunLinuxCmdServiceServer()
+}
+
+// UnimplementedRunLinuxCmdServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedRunLinuxCmdServiceServer struct{}
+
+func (UnimplementedRunLinuxCmdServiceServer) RunLinuxCmdOnce(context.Context, *RunLinuxCmdRequest) (*RunLinuxCmdReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RunLinuxCmdOnce not implemented")
+}
+func (UnimplementedRunLinuxCmdServiceServer) mustEmbedUnimplementedRunLinuxCmdServiceServer() {}
+func (UnimplementedRunLinuxCmdServiceServer) testEmbeddedByValue()                            {}
+
+// UnsafeRunLinuxCmdServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to RunLinuxCmdServiceServer will
+// result in compilation errors.
+type UnsafeRunLinuxCmdServiceServer interface {
+	mustEmbedUnimplementedRunLinuxCmdServiceServer()
+}
+
+func RegisterRunLinuxCmdServiceServer(s grpc.ServiceRegistrar, srv RunLinuxCmdServiceServer) {
+	// If the following call pancis, it indicates UnimplementedRunLinuxCmdServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&RunLinuxCmdService_ServiceDesc, srv)
+}
+
+func _RunLinuxCmdService_RunLinuxCmdOnce_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RunLinuxCmdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunLinuxCmdServiceServer).RunLinuxCmdOnce(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RunLinuxCmdService_RunLinuxCmdOnce_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunLinuxCmdServiceServer).RunLinuxCmdOnce(ctx, req.(*RunLinuxCmdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// RunLinuxCmdService_ServiceDesc is the grpc.ServiceDesc for RunLinuxCmdService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var RunLinuxCmdService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "command.RunLinuxCmdService",
+	HandlerType: (*RunLinuxCmdServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "RunLinuxCmdOnce",
+			Handler:    _RunLinuxCmdService_RunLinuxCmdOnce_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "command.proto",
+}
+
+const (
 	StreamUpdateProgramService_DockerUpdate_FullMethodName    = "/command.StreamUpdateProgramService/DockerUpdate"
 	StreamUpdateProgramService_JavaUpdate_FullMethodName      = "/command.StreamUpdateProgramService/JavaUpdate"
 	StreamUpdateProgramService_DockerReload_FullMethodName    = "/command.StreamUpdateProgramService/DockerReload"
 	StreamUpdateProgramService_JavaReload_FullMethodName      = "/command.StreamUpdateProgramService/JavaReload"
 	StreamUpdateProgramService_JavaUpdateLog_FullMethodName   = "/command.StreamUpdateProgramService/JavaUpdateLog"
 	StreamUpdateProgramService_DockerUpdateLog_FullMethodName = "/command.StreamUpdateProgramService/DockerUpdateLog"
+	StreamUpdateProgramService_RunLinuxCmd_FullMethodName     = "/command.StreamUpdateProgramService/RunLinuxCmd"
 )
 
 // StreamUpdateProgramServiceClient is the client API for StreamUpdateProgramService service.
@@ -133,6 +236,7 @@ type StreamUpdateProgramServiceClient interface {
 	JavaReload(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error)
 	JavaUpdateLog(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error)
 	DockerUpdateLog(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error)
+	RunLinuxCmd(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error)
 }
 
 type streamUpdateProgramServiceClient struct {
@@ -257,6 +361,25 @@ func (c *streamUpdateProgramServiceClient) DockerUpdateLog(ctx context.Context, 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type StreamUpdateProgramService_DockerUpdateLogClient = grpc.ServerStreamingClient[StreamReply]
 
+func (c *streamUpdateProgramServiceClient) RunLinuxCmd(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &StreamUpdateProgramService_ServiceDesc.Streams[6], StreamUpdateProgramService_RunLinuxCmd_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamRequest, StreamReply]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StreamUpdateProgramService_RunLinuxCmdClient = grpc.ServerStreamingClient[StreamReply]
+
 // StreamUpdateProgramServiceServer is the server API for StreamUpdateProgramService service.
 // All implementations must embed UnimplementedStreamUpdateProgramServiceServer
 // for forward compatibility.
@@ -267,6 +390,7 @@ type StreamUpdateProgramServiceServer interface {
 	JavaReload(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error
 	JavaUpdateLog(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error
 	DockerUpdateLog(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error
+	RunLinuxCmd(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error
 	mustEmbedUnimplementedStreamUpdateProgramServiceServer()
 }
 
@@ -294,6 +418,9 @@ func (UnimplementedStreamUpdateProgramServiceServer) JavaUpdateLog(*StreamReques
 }
 func (UnimplementedStreamUpdateProgramServiceServer) DockerUpdateLog(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error {
 	return status.Errorf(codes.Unimplemented, "method DockerUpdateLog not implemented")
+}
+func (UnimplementedStreamUpdateProgramServiceServer) RunLinuxCmd(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error {
+	return status.Errorf(codes.Unimplemented, "method RunLinuxCmd not implemented")
 }
 func (UnimplementedStreamUpdateProgramServiceServer) mustEmbedUnimplementedStreamUpdateProgramServiceServer() {
 }
@@ -383,6 +510,17 @@ func _StreamUpdateProgramService_DockerUpdateLog_Handler(srv interface{}, stream
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type StreamUpdateProgramService_DockerUpdateLogServer = grpc.ServerStreamingServer[StreamReply]
 
+func _StreamUpdateProgramService_RunLinuxCmd_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(StreamUpdateProgramServiceServer).RunLinuxCmd(m, &grpc.GenericServerStream[StreamRequest, StreamReply]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StreamUpdateProgramService_RunLinuxCmdServer = grpc.ServerStreamingServer[StreamReply]
+
 // StreamUpdateProgramService_ServiceDesc is the grpc.ServiceDesc for StreamUpdateProgramService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -419,6 +557,11 @@ var StreamUpdateProgramService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "DockerUpdateLog",
 			Handler:       _StreamUpdateProgramService_DockerUpdateLog_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "RunLinuxCmd",
+			Handler:       _StreamUpdateProgramService_RunLinuxCmd_Handler,
 			ServerStreams: true,
 		},
 	},

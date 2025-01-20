@@ -1,0 +1,1 @@
+[ERROR] 2025/01/17 23:48:15 D:/project/github.com/Lxb921006/go-gin/project/service/ws.go:40: Ws writeMessage errMsg: websocket: close 1001 (going away)

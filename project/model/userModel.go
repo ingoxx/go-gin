@@ -3,6 +3,7 @@ package model
 import (
 	"github.com/Lxb921006/Gin-bms/project/dao"
 	"github.com/Lxb921006/Gin-bms/project/service"
+	"github.com/Lxb921006/Gin-bms/project/utils/encryption"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -16,9 +17,9 @@ type User struct {
 	Tel      int    `json:"tel" gorm:"default:168888"`
 	Password string `json:"-" gorm:"not null"`
 	Roles    []Role `json:"roles" gorm:"many2many:role_users"`
-	Isopenga uint   `json:"isopenga" gorm:"default:1"`
-	Isopenqr uint   `json:"isopenqr" gorm:"default:1"`
-	MfaApp   uint   `json:"mfa_app" gorm:"default:1;comment:1-打开,2-关闭"`
+	Isopenga uint   `json:"isopenga" gorm:"default:1;comment:1-打开MFA,2-关闭MFA"`
+	Isopenqr uint   `json:"isopenqr" gorm:"default:1;comment:1-打开重置MFA,2-关闭重置MFA"`
+	MfaApp   uint   `json:"mfa_app" gorm:"default:1;comment:1-打开MFA应用下载,2-关闭MFA应用下载"`
 }
 
 func (u *User) AddUser(au User, rid uint) (err error) {
@@ -81,6 +82,15 @@ func (u *User) UpdateUser(ud User, rid uint, uid uint) (err error) {
 			tx.Rollback()
 		}
 	}()
+
+	if ud.Password != "" {
+		enData, err := encryption.NewDataEncryption(ud.Name, ud.Password).EncryptionPwd()
+		if err != nil {
+			return err
+		}
+
+		ud.Password = enData
+	}
 
 	if err = dao.DB.Where("id = ?", uid).Find(&user).Error; err != nil {
 		return
@@ -182,5 +192,16 @@ func (u *User) FormatData(ud []User) (usd []User) {
 			usd = append(usd, v)
 		}
 	}
+	return
+}
+
+func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
+	enData, err := encryption.NewDataEncryption(u.Name, u.Password).EncryptionPwd()
+	if err != nil {
+		return
+	}
+
+	u.Password = enData
+
 	return
 }

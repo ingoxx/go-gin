@@ -1,0 +1,6 @@
+[ERROR] 2025/01/18 18:01:24 D:/project/github.com/Lxb921006/go-gin/project/service/ws.go:40: Ws writeMessage errMsg: websocket: close 1001 (going away)
+[ERROR] 2025/01/18 18:48:38 D:/project/github.com/Lxb921006/go-gin/project/service/ws.go:40: Ws writeMessage errMsg: websocket: close 1001 (going away)
+[ERROR] 2025/01/18 18:49:12 D:/project/github.com/Lxb921006/go-gin/project/service/ws.go:40: Ws writeMessage errMsg: websocket: close 1001 (going away)
+[ERROR] 2025/01/18 19:18:22 D:/project/github.com/Lxb921006/go-gin/project/service/ws.go:40: Ws writeMessage errMsg: websocket: close 1001 (going away)
+[ERROR] 2025/01/18 19:18:22 D:/project/github.com/Lxb921006/go-gin/project/service/ws.go:40: Ws writeMessage errMsg: websocket: close 1001 (going away)
+[ERROR] 2025/01/18 19:18:22 D:/project/github.com/Lxb921006/go-gin/project/service/ws.go:40: Ws writeMessage errMsg: websocket: close 1001 (going away)

@@ -54,16 +54,15 @@ func AddUser(ctx *gin.Context) {
 	if err := ctx.ShouldBind(&addUser); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
-			"code":    60001,
+			"code":    10001,
 		})
 		return
 	}
 
-	//validate := validator.New()
 	if err := NewValidateData(validate).ValidateStruct(addUser); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": fmt.Sprintf("添加%v失败, errMsg: %v", addUser.Name, err.Error()),
-			"code":    60002,
+			"code":    10002,
 		})
 		return
 	}
@@ -71,7 +70,7 @@ func AddUser(ctx *gin.Context) {
 	if err := mapstructure.Decode(addUser, &u); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": fmt.Sprintf("添加%v失败, errMsg: %v", addUser.Name, err.Error()),
-			"code":    60004,
+			"code":    10003,
 		})
 		return
 	}
@@ -79,7 +78,7 @@ func AddUser(ctx *gin.Context) {
 	if err := u.AddUser(u, addUser.RoleId); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": fmt.Sprintf("添加%v失败, errMsg: %v", addUser.Name, err.Error()),
-			"code":    60003,
+			"code":    10004,
 		})
 		return
 	}
@@ -97,7 +96,7 @@ func DeleteUser(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&delUser); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
-			"code":    60004,
+			"code":    10001,
 		})
 		return
 	}
@@ -106,7 +105,7 @@ func DeleteUser(ctx *gin.Context) {
 	if err := vd.RegisterValidation(); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
-			"code":    60006,
+			"code":    10002,
 		})
 		return
 	}
@@ -115,7 +114,7 @@ func DeleteUser(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
-			"code":    60008,
+			"code":    10003,
 		})
 		return
 	}
@@ -123,7 +122,7 @@ func DeleteUser(ctx *gin.Context) {
 	if err := vd.ValidateStruct(delUser); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
-			"code":    60007,
+			"code":    10004,
 		})
 		return
 	}
@@ -131,7 +130,7 @@ func DeleteUser(ctx *gin.Context) {
 	if err := u.DeleteUser(delUser.Uid); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
-			"code":    60005,
+			"code":    10005,
 		})
 		return
 	}
@@ -149,7 +148,7 @@ func UpdateUser(ctx *gin.Context) {
 	if e := ctx.ShouldBind(&ud); e != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": e.Error(),
-			"code":    60006,
+			"code":    10001,
 		})
 		return
 	}
@@ -157,7 +156,7 @@ func UpdateUser(ctx *gin.Context) {
 	if err := NewValidateData(validate).ValidateStruct(ud); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": fmt.Sprintf("更新%v失败, errMsg: %v", ud.Name, err.Error()),
-			"code":    60002,
+			"code":    10002,
 		})
 		return
 	}
@@ -165,7 +164,7 @@ func UpdateUser(ctx *gin.Context) {
 	if err := mapstructure.Decode(ud, &u); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": fmt.Sprintf("更新%v失败, errMsg: %v", ud.Name, err.Error()),
-			"code":    60009,
+			"code":    10003,
 		})
 		return
 	}
@@ -173,7 +172,7 @@ func UpdateUser(ctx *gin.Context) {
 	if err := u.UpdateUser(u, ud.Rid, ud.Uid); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": fmt.Sprintf("更新%v失败, errMsg: %s", ud.Name, err.Error()),
-			"code":    60008,
+			"code":    10004,
 		})
 		return
 	}
@@ -191,7 +190,7 @@ func GetUserByName(ctx *gin.Context) {
 	if e := ctx.ShouldBindQuery(&guf); e != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": e.Error(),
-			"code":    60009,
+			"code":    10001,
 		})
 		return
 	}
@@ -200,14 +199,15 @@ func GetUserByName(ctx *gin.Context) {
 	if e != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": e.Error(),
-			"code":    60010,
+			"code":    10002,
 		})
-	} else {
-		ctx.JSON(http.StatusOK, gin.H{
-			"data": r,
-			"code": 10000,
-		})
+		return
 	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"data": r,
+		"code": 10000,
+	})
 
 }
 
@@ -217,7 +217,7 @@ func GetUsersByPaginate(ctx *gin.Context) {
 	if err := ctx.ShouldBindQuery(&pd); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
-			"code":    60011,
+			"code":    10001,
 		})
 		return
 	}
@@ -226,7 +226,7 @@ func GetUsersByPaginate(ctx *gin.Context) {
 	if err := pd.PaginateLogic(u, vd); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
-			"code":    60012,
+			"code":    10002,
 		})
 		return
 	}

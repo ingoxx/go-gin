@@ -21,7 +21,7 @@ var (
 	}
 )
 
-// RunProgramController 程序更新
+// RunProgramController 程序更新-在新的页面
 func RunProgramController(ctx *gin.Context) {
 	conn, err := upGrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
@@ -34,7 +34,6 @@ func RunProgramController(ctx *gin.Context) {
 	if err = service.NewWs(conn, &aprm).Run(); err != nil {
 		return
 	}
-
 }
 
 // SyncFileController 分发文件
@@ -49,10 +48,9 @@ func SyncFileController(ctx *gin.Context) {
 	if err = service.NewSendFileWs(conn).Send(); err != nil {
 		return
 	}
-
 }
 
-// RunProgramApiController 程序更新
+// RunProgramApiController 程序更新-当前页面
 func RunProgramApiController(ctx *gin.Context) {
 	var ps RunProgramApiForm
 	if err := ps.Run(ctx); err != nil {

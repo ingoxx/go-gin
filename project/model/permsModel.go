@@ -61,7 +61,7 @@ func (p *Permission) GetAllPerms() ([]Permission, error) {
 	}
 
 	if len(perms) == 0 {
-		return perms, errors.ErrEmptyPermList
+		return perms, errors.EmptyPermListError
 	}
 
 	return perms, nil

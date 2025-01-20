@@ -21,23 +21,25 @@ service StreamUpdateProgramService {
   rpc JavaReload (StreamRequest) returns (stream StreamReply) {}
   rpc JavaUpdateLog (StreamRequest) returns (stream StreamReply) {}
   rpc DockerUpdateLog (StreamRequest) returns (stream StreamReply) {}
+  rpc RunLinuxCmd (StreamRequest) returns (stream StreamReply) {}
 }
 
 
 // The request message containing the user's name. 1代表的是id在一个message 里边是唯一的, 不能重复
 message StreamRequest {
   string uuid = 1;
-  ReqToken token = 2;
-}
-
-message ReqToken {
-  string user = 1;
-  string token = 2;
+  string cmd = 2;
+  string ip =3;
 }
 
 // The response message containing the greetings
 message StreamReply {
   string message = 1;
+}
+
+message ReqToken {
+  string user = 1;
+  string token = 2;
 }
 
 // 最后执行：protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative command.proto

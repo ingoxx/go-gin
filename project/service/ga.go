@@ -43,7 +43,7 @@ func (m *GoogleAuthenticator) QrUrl(label, user string) (qr string) {
 }
 
 func (m *GoogleAuthenticator) CreateSecret(u string) {
-	date := strconv.Itoa(int(time.Now().Nanosecond()))
+	date := strconv.Itoa(time.Now().Nanosecond())
 	data := "ajksduk912J3KDAKJKASD" + u + date
 	hash := sha1.New()
 	hash.Write([]byte(data))

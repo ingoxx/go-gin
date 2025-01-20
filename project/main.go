@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Lxb921006/Gin-bms/project/config"
 	"github.com/Lxb921006/Gin-bms/project/logger"
 	"github.com/Lxb921006/Gin-bms/project/migrate"
 	"log"
@@ -10,7 +11,7 @@ import (
 )
 
 func main() {
-	logger.SetLogFile("./server.log")
+	logger.SetLogFile(config.LoggerFile)
 	logger.SetLogLevel(logger.ErrorLevel)
 
 	//初始化mysql
@@ -41,5 +42,4 @@ func main() {
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-
 }

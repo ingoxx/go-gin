@@ -1,0 +1,1 @@
+[ERROR] 2025/01/20 10:47:42 D:/project/github.com/Lxb921006/go-gin/project/command/client/client.go:254: websocket err, errMsg: write tcp 127.0.0.1:9293->127.0.0.1:49258: use of closed network connection

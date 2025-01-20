@@ -1,0 +1,8 @@
+[ERROR] 2025/01/14 15:18:54 D:/project/github.com/Lxb921006/go-gin/project/main.go:16: aaaa
+[ERROR] 2025/01/14 15:28:35 D:/project/github.com/Lxb921006/go-gin/project/dao/mysql.go:44: adasd
+[ERROR] 2025/01/14 15:36:47 D:/project/github.com/Lxb921006/go-gin/project/utils/celery.go:54: adad
+[ERROR] 2025/01/14 16:29:56 D:/project/github.com/Lxb921006/go-gin/project/utils/celery.go:56: asdsad
+[ERROR] 2025/01/14 16:33:21 D:/project/github.com/Lxb921006/go-gin/project/main.go:17: hello lxb
+[ERROR] 2025/01/14 16:33:55 D:/project/github.com/Lxb921006/go-gin/project/main.go:16: hello lxb
+[ERROR] 2025/01/14 16:58:40 D:/project/github.com/Lxb921006/go-gin/project/utils/celery.go:54: uuid: 7c4215d1-fdc4-4329-a618-72d515e7022e, grpc连接失败, errMsg: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 193.112.111.237:12306: connectex: No connection could be made because the target machine actively refused it.", 2
+[ERROR] 2025/01/14 17:13:55 D:/project/github.com/Lxb921006/go-gin/project/utils/celery.go:53: uuid: 513949e0-19f7-4d06-829c-b21b31da31df, ip: 193.112.111.237, grpc连接失败, errMsg: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 193.112.111.237:12306: connectex: No connection could be made because the target machine actively refused it.", 2

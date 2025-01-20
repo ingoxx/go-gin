@@ -1,0 +1,2 @@
+[ERROR] 2025/01/19 08:06:34 D:/project/github.com/Lxb921006/go-gin/project/service/ws.go:45: Ws writeMessage errMsg: write tcp 127.0.0.1:9293->127.0.0.1:63149: use of closed network connection
+[ERROR] 2025/01/19 08:06:34 D:/project/github.com/Lxb921006/go-gin/project/service/ws.go:45: Ws writeMessage errMsg: write tcp 127.0.0.1:9293->127.0.0.1:63149: use of closed network connection

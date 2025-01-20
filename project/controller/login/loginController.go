@@ -2,10 +2,10 @@ package login
 
 import (
 	"fmt"
+	ginErr "github.com/Lxb921006/Gin-bms/project/errors"
 	"net/http"
 
 	"github.com/Lxb921006/Gin-bms/project/model"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -32,10 +32,18 @@ func MFAVerify(ctx *gin.Context) {
 	}
 
 	data, err := l.GaLogin(ga.Code, ga.UserName)
-	if err != nil {
+	if ginErr.IsForForbiddenError(err) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
 			"code":    10002,
+		})
+		return
+	}
+
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10003,
 		})
 		return
 	}
@@ -61,10 +69,18 @@ func Login(ctx *gin.Context) {
 	}
 
 	data, err := l.UserLogin(lf.UserName, lf.Password)
-	if err != nil {
+	if ginErr.IsForForbiddenError(err) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
 			"code":    10002,
+		})
+		return
+	}
+
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10003,
 		})
 		return
 	}

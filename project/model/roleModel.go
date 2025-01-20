@@ -81,7 +81,7 @@ func (rl *Role) AllotPerms(rid uint, pid []uint) (err error) {
 	}
 
 	if len(perms) == 0 {
-		return errors.ErrEmptyPermList
+		return errors.EmptyPermListError
 	}
 
 	if err = dao.DB.Where("id = ?", rid).Find(&role).Error; err != nil {

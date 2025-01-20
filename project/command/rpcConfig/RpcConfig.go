@@ -1,6 +1,6 @@
 package rpcConfig
 
 const (
-	//UploadPath = "/opt"
-	UploadPath = "C:\\Users\\Administrator\\Desktop\\update"
+	LinuxUploadPath = "/opt"
+	UploadPath      = "C:\\Users\\Administrator\\Desktop\\update"
 )
