@@ -10,13 +10,13 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-func OperateLogList(ctx *gin.Context) {
+func LogListController(ctx *gin.Context) {
 	var od operate.OperateLogListQuery
 	var u model.OperateLogModel
 	if err := ctx.ShouldBindQuery(&od); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
-			"code":    20001,
+			"code":    10001,
 		})
 		return
 	}
@@ -26,7 +26,7 @@ func OperateLogList(ctx *gin.Context) {
 	if err := od.PaginateLogic(u, vd); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
-			"code":    20002,
+			"code":    10002,
 		})
 		return
 	}
@@ -37,4 +37,58 @@ func OperateLogList(ctx *gin.Context) {
 		"pageSize": od.PageData.PageSize,
 		"code":     10000,
 	})
+}
+
+func GetLoginNumDataController(ctx *gin.Context) {
+	var op model.OperateLogModel
+	data, err := op.GetLoginNum()
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10002,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"data": data,
+		"code": 10000,
+	})
+
+}
+
+func GetLinuxCmdDataController(ctx *gin.Context) {
+	var op model.OperateLogModel
+	data, err := op.GetRunLinuxCmdNum()
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10002,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"data": data,
+		"code": 10000,
+	})
+
+}
+
+func GetUserLoginNumController(ctx *gin.Context) {
+	var op model.OperateLogModel
+	data, err := op.GetUserLoginNum()
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10002,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"data": data,
+		"code": 10000,
+	})
+
 }

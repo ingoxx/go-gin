@@ -6,9 +6,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func OperateRouter(r *gin.Engine) {
+func Router(r *gin.Engine) {
 	operate := r.Group("/log")
 	{
-		operate.GET("/list", oc.OperateLogList)
+		operate.GET("/list", oc.LogListController)
+		operate.GET("/get-login-num", oc.GetLoginNumDataController)
+		operate.GET("/get-run-linux-cmd-num", oc.GetLinuxCmdDataController)
+		operate.GET("/get-user-login-num", oc.GetUserLoginNumController)
 	}
 }

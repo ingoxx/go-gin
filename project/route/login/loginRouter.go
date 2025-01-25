@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func LoginRouter(r *gin.Engine) {
+func Router(r *gin.Engine) {
 	r.POST("/login", lc.Login)
 	r.POST("/galogin", lc.MFAVerify)
 	r.POST("/logout", lc.Logout)

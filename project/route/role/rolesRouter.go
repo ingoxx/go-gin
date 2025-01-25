@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RoleRouter(r *gin.Engine) {
+func Router(r *gin.Engine) {
 	role := r.Group("/role")
 	{
 		role.GET("/rolesname", rc.GetRolesInfo) //角色详情

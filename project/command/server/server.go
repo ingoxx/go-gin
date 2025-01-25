@@ -143,7 +143,13 @@ func (s *server) scriptOutPut(data runScriptData) (err error) {
 	}
 
 	cmd := exec.Command("sh", "-c", makeCmd)
+	// 标准输出
 	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return
+	}
+	// 标准错误
+	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return
 	}
@@ -152,12 +158,23 @@ func (s *server) scriptOutPut(data runScriptData) (err error) {
 		return
 	}
 
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		if err = data.stream.Send(&pb.StreamReply{Message: scanner.Text()}); err != nil {
-			return
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			if err = data.stream.Send(&pb.StreamReply{Message: scanner.Text()}); err != nil {
+				return
+			}
 		}
-	}
+	}()
+
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			if err = data.stream.Send(&pb.StreamReply{Message: scanner.Text()}); err != nil {
+				return
+			}
+		}
+	}()
 
 	if err = cmd.Wait(); err != nil {
 		return

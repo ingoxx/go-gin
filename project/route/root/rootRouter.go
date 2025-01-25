@@ -23,12 +23,12 @@ func SetupRouter() *http.Server {
 	router.Use(middleware.AllowCos(), middleware.TokenVerify(), middleware.PermsVerify(), middleware.ReqFrequencyLimit(), middleware.OperateRecord())
 
 	//加载路由配置
-	user.UserRouter(router)
-	role.RoleRouter(router)
-	perms.PermsRouter(router)
-	login.LoginRouter(router)
-	operate.OperateRouter(router)
-	assets.AssetsRouter(router)
+	user.Router(router)
+	role.Router(router)
+	perms.Router(router)
+	login.Router(router)
+	operate.Router(router)
+	assets.Router(router)
 
 	t := &http.Server{
 		Addr:           ":9293",

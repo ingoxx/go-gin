@@ -9,13 +9,13 @@ import (
 
 //资产列表的crud-1
 
-type AssetsListForm struct {
+type ListForm struct {
 	Ip      string `form:"ip,omitempty" json:"ip"`
 	Project string `form:"project,omitempty" json:"project"`
 	Page    int    `form:"page" json:"page" validate:"min=1" binding:"required"`
 }
 
-func (a *AssetsListForm) List(ctx *gin.Context) (data *service.Paginate, err error) {
+func (a *ListForm) List(ctx *gin.Context) (data *service.Paginate, err error) {
 	var al model.AssetsModel
 	if err = ctx.ShouldBind(a); err != nil {
 		return
@@ -39,12 +39,12 @@ func (a *AssetsListForm) List(ctx *gin.Context) (data *service.Paginate, err err
 	return
 }
 
-type AssetsCreateForm struct {
+type CreateForm struct {
 	Ip      []string `form:"ip" json:"ip"`
 	Project string   `form:"project" json:"project"`
 }
 
-func (a *AssetsCreateForm) Create(ctx *gin.Context) (err error) {
+func (a *CreateForm) Create(ctx *gin.Context) (err error) {
 	var am model.AssetsModel
 	var aml []*model.AssetsModel
 	if err = ctx.ShouldBindJSON(a); err != nil {
@@ -67,11 +67,11 @@ func (a *AssetsCreateForm) Create(ctx *gin.Context) (err error) {
 	return
 }
 
-type AssetsDelForm struct {
+type DelForm struct {
 	Ips []string `form:"ips" json:"ips" binding:"required"`
 }
 
-func (a *AssetsDelForm) Del(ctx *gin.Context) (err error) {
+func (a *DelForm) Del(ctx *gin.Context) (err error) {
 	var am model.AssetsModel
 	if err = ctx.BindJSON(a); err != nil {
 		return
@@ -84,13 +84,13 @@ func (a *AssetsDelForm) Del(ctx *gin.Context) (err error) {
 	return
 }
 
-type AssetsModifyForm struct {
+type UpdateForm struct {
 	Id      int64  `form:"id" json:"id"`
 	Ip      string `form:"ip" json:"ip"`
 	Project string `form:"project" json:"project"`
 }
 
-func (aef *AssetsModifyForm) Modify(ctx *gin.Context) (err error) {
+func (aef *UpdateForm) Modify(ctx *gin.Context) (err error) {
 	var am model.AssetsModel
 	var data = make(map[string]interface{})
 	if err = ctx.ShouldBind(aef); err != nil {

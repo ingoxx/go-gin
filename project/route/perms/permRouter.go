@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func PermsRouter(r *gin.Engine) {
+func Router(r *gin.Engine) {
 	perms := r.Group("/perms")
 	{
 		perms.GET("/list", pc.GetPermsList)

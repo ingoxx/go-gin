@@ -2,6 +2,8 @@ package model
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
 	"time"
 
@@ -57,10 +59,10 @@ func (o *OperateLogModel) OperateLogListByDate(page int, op OperateLogModel) (da
 }
 
 func (o *OperateLogModel) AddOperateLog(ctx *gin.Context) (err error) {
-	// 没办法, 上传的不给这样操作
 	if ctx.Request.URL.Path == "/assets/upload" {
 		return
 	}
+
 	b, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
 		return
@@ -88,6 +90,131 @@ func (o *OperateLogModel) AddOperateLog(ctx *gin.Context) (err error) {
 	if err = dao.DB.Create(o).Error; err != nil {
 		return
 	}
+
+	if err := o.dataCount(ctx.Request.URL.Path); err != nil {
+		return err
+	}
+
+	return
+}
+
+func (o *OperateLogModel) dataCount(url string) (err error) {
+	if url == "/login" {
+		if err := o.recordHighFrequencyData(dao.LoginNum); err != nil {
+			return err
+		}
+		if err := o.recordHighFrequencyData(dao.UserLoginNum); err != nil {
+			return err
+		}
+	}
+
+	if url == "/assets/run-linux-cmd" {
+		if err := o.recordHighFrequencyData(dao.RunLinuxCmdNum); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+func (o *OperateLogModel) recordHighFrequencyData(key string) (err error) {
+	var data []map[string]interface{}
+	if key == dao.LoginNum {
+		data, err = o.findSevenDaysLoginNum()
+		if err != nil {
+			return
+		}
+	} else if key == dao.RunLinuxCmdNum {
+		data, err = o.findSevenDaysRunLinuxCmdNum()
+		if err != nil {
+			return
+		}
+	} else if key == dao.UserLoginNum {
+		data, err = o.findUserLoginNum()
+		if err != nil {
+			return
+		}
+	}
+
+	b, err := json.Marshal(&data)
+	if err != nil {
+		return
+	}
+
+	if err := dao.Rds.SetData(key, b); err != nil {
+		return err
+	}
+
+	return
+}
+
+func (o *OperateLogModel) GetLoginNum() (data interface{}, err error) {
+	var md = make([]map[string]interface{}, 0)
+	b, err := dao.Rds.GetData(dao.LoginNum)
+	if err != nil {
+		return
+	}
+
+	if err := json.Unmarshal(b, &md); err != nil {
+		return nil, err
+	}
+
+	var rd = make(map[string]interface{})
+	rd["columns"] = []string{"日期", "平台登录次数"}
+	rd["rows"] = md
+
+	data = rd
+
+	return
+}
+
+func (o *OperateLogModel) GetRunLinuxCmdNum() (data interface{}, err error) {
+	var md = make([]map[string]interface{}, 0)
+	var rd = make(map[string]interface{})
+
+	b, err := dao.Rds.GetData(dao.RunLinuxCmdNum)
+	if err != nil {
+		return
+	}
+
+	if len(b) == 0 {
+		return rd, nil
+	}
+
+	if err := json.Unmarshal(b, &md); err != nil {
+		return nil, err
+	}
+
+	rd["columns"] = []string{"日期", "linux命令执行次数"}
+	rd["rows"] = md
+
+	data = rd
+
+	return
+}
+
+func (o *OperateLogModel) GetUserLoginNum() (data interface{}, err error) {
+	var md = make([]map[string]interface{}, 0)
+	var rd = make(map[string]interface{})
+
+	b, err := dao.Rds.GetData(dao.RunLinuxCmdNum)
+	if err != nil {
+		return
+	}
+
+	if len(b) == 0 {
+		return rd, nil
+	}
+
+	if err := json.Unmarshal(b, &md); err != nil {
+		return nil, err
+	}
+
+	rd["columns"] = []string{"用户名", "总的平台登陆次数"}
+	rd["rows"] = md
+
+	data = rd
+
 	return
 }
 
@@ -101,4 +228,117 @@ func (o *OperateLogModel) AloneAddOperateLog(data map[string]string) error {
 	}
 
 	return nil
+}
+
+func (o *OperateLogModel) findSevenDaysLoginNum() ([]map[string]interface{}, error) {
+	var dataList = make([]map[string]interface{}, 0)
+	rows, err := dao.DB.Raw(`
+		SELECT DATE(created_at) as date, count(1) as login_num FROM operate_log_models 
+		where DATE(created_at) > NOW() - INTERVAL 7 DAY and url like '%/login%'
+		GROUP BY DATE(created_at);
+	`).Rows()
+
+	if err != nil {
+		return dataList, err
+	}
+
+	for rows.Next() {
+		var date string
+		var loginNum int
+		var data = make(map[string]interface{})
+
+		if err := rows.Scan(&date, &loginNum); err != nil {
+			return dataList, err
+		}
+
+		parsedTime, err := time.Parse(time.RFC3339, date)
+		if err != nil {
+			return dataList, err
+		}
+
+		data["日期"] = parsedTime.Format("2006-01-02")
+		data["平台登录次数"] = loginNum
+		dataList = append(dataList, data)
+	}
+
+	return dataList, nil
+}
+
+func (o *OperateLogModel) findSevenDaysRunLinuxCmdNum() ([]map[string]interface{}, error) {
+	var dataList = make([]map[string]interface{}, 0)
+	rows, err := dao.DB.Raw(`
+		SELECT DATE(created_at) as date, count(1) as run_num FROM operate_log_models 
+		where DATE(created_at) > NOW() - INTERVAL 7 DAY and url like '%/assets/run-linux-cmd%' 
+		GROUP BY DATE(created_at);
+	`).Rows()
+
+	if err != nil {
+		return dataList, err
+	}
+
+	for rows.Next() {
+		var date string
+		var runLinuxCmdNum int
+		var data = make(map[string]interface{})
+
+		if err := rows.Scan(&date, &runLinuxCmdNum); err != nil {
+			return dataList, err
+		}
+
+		parsedTime, err := time.Parse(time.RFC3339, date)
+		if err != nil {
+			return dataList, err
+		}
+
+		data["日期"] = parsedTime.Format("2006-01-02")
+		data["linux命令执行次数"] = runLinuxCmdNum
+		dataList = append(dataList, data)
+	}
+
+	for k, v := range dataList {
+		fmt.Println(k, v)
+	}
+
+	return dataList, nil
+}
+
+func (o *OperateLogModel) findUserLoginNum() ([]map[string]interface{}, error) {
+	var dataList = make([]map[string]interface{}, 0)
+	rows, err := dao.DB.Raw(`
+		select operator, count(1) as user_login_num from operate_log_models 
+		where url like '%/login%' GROUP BY operator;
+	`).Rows()
+
+	if err != nil {
+		return dataList, err
+	}
+
+	for rows.Next() {
+		var date string
+		var runLinuxCmdNum int
+		var data = make(map[string]interface{})
+
+		if err := rows.Scan(&date, &runLinuxCmdNum); err != nil {
+			return dataList, err
+		}
+
+		parsedTime, err := time.Parse(time.RFC3339, date)
+		if err != nil {
+			return dataList, err
+		}
+
+		data["用户名"] = parsedTime.Format("2006-01-02")
+		data["总的平台登陆次数"] = runLinuxCmdNum
+		dataList = append(dataList, data)
+	}
+
+	for k, v := range dataList {
+		fmt.Println(k, v)
+	}
+
+	return dataList, nil
+}
+
+func (o *OperateLogModel) serializeData() (err error) {
+	return
 }

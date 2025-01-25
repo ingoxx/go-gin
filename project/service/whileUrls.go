@@ -41,6 +41,10 @@ func (WhileUrls) OperateWhileList(url string) bool {
 		"/assets/process/update/list",
 		"/logger/list",
 		"/assets/program/list",
+		"/assets/program/update/list",
+		"/log/list",
+		"/log/get-login-num",
+		"/log/get-run-linux-cmd-num",
 	}
 
 	for i := 0; i < len(wls); i++ {

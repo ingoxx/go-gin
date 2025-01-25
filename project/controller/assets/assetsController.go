@@ -21,7 +21,7 @@ var (
 	}
 )
 
-// RunProgramController 程序更新-在新的页面
+// RunProgramController 程序更新-在新的页面, 查看系统原始日志, 执行linux命令
 func RunProgramController(ctx *gin.Context) {
 	conn, err := upGrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
@@ -141,7 +141,7 @@ func UploadController(ctx *gin.Context) {
 }
 
 func ListController(ctx *gin.Context) {
-	var alc AssetsListForm
+	var alc ListForm
 	data, err := alc.List(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -161,7 +161,7 @@ func ListController(ctx *gin.Context) {
 }
 
 func CreateController(ctx *gin.Context) {
-	var acf AssetsCreateForm
+	var acf CreateForm
 	if err := acf.Create(ctx); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
@@ -177,7 +177,7 @@ func CreateController(ctx *gin.Context) {
 }
 
 func UpdateController(ctx *gin.Context) {
-	var amf AssetsModifyForm
+	var amf UpdateForm
 	if err := amf.Modify(ctx); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
@@ -193,7 +193,7 @@ func UpdateController(ctx *gin.Context) {
 }
 
 func DeleteController(ctx *gin.Context) {
-	var adf AssetsDelForm
+	var adf DelForm
 	if err := adf.Del(ctx); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),

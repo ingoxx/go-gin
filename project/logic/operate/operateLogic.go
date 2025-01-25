@@ -18,6 +18,10 @@ type OperateLogListQuery struct {
 	PageData  *service.Paginate `form:"-"`
 }
 
+func NewOperateLogListQuery() *OperateLogListQuery {
+	return &OperateLogListQuery{}
+}
+
 func (op *OperateLogListQuery) PaginateLogic(opm model.OperateLogModel, api api.Api) (err error) {
 	//验证器
 	if err = api.ValidateStruct(op); err != nil {

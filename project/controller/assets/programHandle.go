@@ -149,7 +149,6 @@ func (u *UploadForm) UploadFiles(ctx *gin.Context) (md5 map[string]string, err e
 		if err = ctx.SaveUploadedFile(file, fullFile); err != nil {
 			return
 		}
-
 		fileList = append(fileList, file.Filename)
 	}
 

@@ -92,6 +92,26 @@ func (r *RedisDb) ForbiddenLogin(key string) (err error) {
 
 	return
 }
+func (r *RedisDb) SetData(key string, val []byte) (err error) {
+	_, err = r.pool.Set(key, val, 0).Result()
+	if err != nil {
+		return
+	}
+
+	return
+
+}
+
+func (r *RedisDb) GetData(key string) (data []byte, err error) {
+	d := r.pool.Get(key).Val()
+	if d == "" {
+		return
+	}
+
+	data = []byte(d)
+
+	return
+}
 
 func (r *RedisDb) HMSetKey(key string, setData map[string]interface{}) (err error) {
 	if _, err = r.pool.HMSet(key, setData).Result(); err != nil {

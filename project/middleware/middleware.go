@@ -37,7 +37,7 @@ func TokenVerify() gin.HandlerFunc {
 		user := ctx.Query("user")
 		if token == "" || user == "" {
 			ctx.JSON(http.StatusBadRequest, gin.H{
-				"message": "非法请求, 参数缺失",
+				"message": "非法请求",
 			})
 			ctx.Abort()
 		} else {
