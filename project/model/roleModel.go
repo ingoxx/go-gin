@@ -16,13 +16,13 @@ type Role struct {
 	//Permissions  []Permissions `json:"permission" gorm:"many2many:role_permissions;association_autoupdate:false;association_autocreate:false"`
 	//同步更新permission表
 	Permissions []Permission `json:"permissions" gorm:"many2many:role_permissions"`
-	Mm          []Menu       `json:"mm" gorm:"-"`
+	Mm          []*Menu      `json:"mm" gorm:"-"`
 	Users       []User       `json:"users" gorm:"many2many:role_users"`
 }
 
 type Menu struct {
 	Permission
-	Children []Menu `json:"children"`
+	Children []*Menu `json:"children"`
 }
 
 type RolePermission struct {
@@ -230,19 +230,27 @@ func (rl *Role) GetAllFormatPerms() (p []Permission, err error) {
 	return
 }
 
-func (rl *Role) FormatUserPerms(p []Permission, pid uint) (m []Menu) {
-	m = []Menu{}
-	m1 := Menu{}
-	for i := 0; i < len(p); i++ {
-		if p[i].ParentId == pid {
-			m1.Children = rl.FormatUserPerms(p, p[i].ID)
-			m1.ID = p[i].ID
-			m1.ParentId = p[i].ParentId
-			m1.Title = p[i].Title
-			m1.Path = p[i].Path
-			m1.Level = p[i].Level
-			m = append(m, m1)
+func (rl *Role) FormatUserPerms(perms []Permission, pid uint) []*Menu {
+	menuMap := make(map[uint]*Menu)
+	for _, perm := range perms {
+		menuMap[perm.ID] = &Menu{Permission: perm, Children: []*Menu{}}
+	}
+
+	var roots []*Menu
+	// 第二次遍历，把节点正确地添加到其父节点的 Children 里
+	for _, menu := range menuMap {
+		if menu.ParentId == pid {
+			// 父 ID 为 0，说明是根节点，加入 roots
+			roots = append(roots, menu)
+		} else if parent, exists := menuMap[menu.ParentId]; exists {
+			// 找到父节点，加入其 Children
+			parent.Children = append(parent.Children, menu)
+		} else {
+			// 父 ID 不为 0，但在 map 里找不到对应的父级，说明数据不完整
+			// 这里选择直接当成根节点，避免数据丢失
+			roots = append(roots, menu)
 		}
 	}
-	return
+
+	return roots
 }

@@ -71,7 +71,7 @@ func PermsVerify() gin.HandlerFunc {
 			Joins("inner join users on role_users.user_id = users.id and users.name = ?", user).
 			Select("permissions.path").Find(&p).Error
 
-		if err != nil {
+		if err != nil || len(p) == 0 {
 			ctx.JSON(http.StatusForbidden, gin.H{
 				"message": err.Error(),
 			})
@@ -127,6 +127,7 @@ func OperateRecord() gin.HandlerFunc {
 			ctx.JSON(http.StatusBadRequest, gin.H{
 				"message": err.Error(),
 			})
+
 			ctx.Abort()
 		}
 	}

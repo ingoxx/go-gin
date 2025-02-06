@@ -12,6 +12,7 @@ func Router(r *gin.Engine) {
 		user.POST("/add", uc.AddUser)
 		user.POST("/del", uc.DeleteUser)
 		user.POST("/update", uc.UpdateUser)
+		user.POST("/update-pwd", uc.UpdateUserPwd)
 		user.GET("/getinfobyname", uc.GetUserByName)
 		user.GET("/list", uc.GetUsersByPaginate)
 	}

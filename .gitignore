@@ -25,3 +25,4 @@ project/.DS_Store
 .DS_Store
 project/config/dbConfig.go
 .idea/
+*.log

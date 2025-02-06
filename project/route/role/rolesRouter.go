@@ -11,9 +11,9 @@ func Router(r *gin.Engine) {
 	{
 		role.GET("/rolesname", rc.GetRolesInfo) //角色详情
 		role.GET("/list", rc.GetRolesList)
-		role.GET("/userperms", rc.GetUserPerms)  //用户权限
-		role.GET("/roleperms", rc.GetRolePerms)  //角色权限
-		role.GET("/pmenu", rc.GetAllFormatPerms) //权限菜单(格式化后的权限列表)
+		role.GET("/userperms", rc.GetUserPerms)  //用户权限查询
+		role.GET("/roleperms", rc.GetRolePerms)  //角色权限查询
+		role.GET("/pmenu", rc.GetAllFormatPerms) //权限菜单
 		role.POST("/create", rc.CreateRole)
 		role.POST("/delete", rc.DeleteRoles)
 		role.POST("/allotperms", rc.AllotPermsToRole) //分配权限

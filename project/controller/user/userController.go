@@ -39,6 +39,14 @@ type UpdateUserForm struct {
 	MfaApp     uint   `json:"mfa_app" form:"mfa_app"`
 }
 
+type UpdateUserPwdForm struct {
+	Name       string `json:"name" form:"name"`
+	Uid        uint   `json:"uid" form:"uid" binding:"required"`
+	Rid        uint   `json:"rid" form:"rid" binding:"required"`
+	Password   string `json:"password" form:"password"`
+	RePassword string `json:"rePassword" form:"rePassword"  validate:"eqfield=Password"`
+}
+
 type DelUserByIdJson struct {
 	Uid []uint `json:"uid" form:"uid" binding:"required" validate:"containsAdminUid"`
 }
@@ -205,8 +213,9 @@ func GetUserByName(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"data": r,
-		"code": 10000,
+		"data":    r,
+		"code":    10000,
+		"message": "ok",
 	})
 
 }
@@ -236,6 +245,48 @@ func GetUsersByPaginate(ctx *gin.Context) {
 		"total":    pd.PageData.Total,
 		"pageSize": pd.PageData.PageSize,
 		"code":     10000,
+		"message":  "ok",
 	})
 
+}
+
+func UpdateUserPwd(ctx *gin.Context) {
+	var u model.User
+	var ud UpdateUserPwdForm
+	if e := ctx.ShouldBind(&ud); e != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": e.Error(),
+			"code":    10001,
+		})
+		return
+	}
+
+	if err := NewValidateData(validate).ValidateStruct(ud); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("更新%s密码失败, errMsg: %v", ud.Name, err.Error()),
+			"code":    10002,
+		})
+		return
+	}
+
+	if err := mapstructure.Decode(ud, &u); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("更新%v密码失败, errMsg: %v", ud.Name, err.Error()),
+			"code":    10003,
+		})
+		return
+	}
+
+	if err := u.UpdateUser(u, ud.Rid, ud.Uid); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("更新%v密码失败, errMsg: %s", ud.Name, err.Error()),
+			"code":    10004,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("更新%v密码成功", ud.Name),
+		"code":    10000,
+	})
 }

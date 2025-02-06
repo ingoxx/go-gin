@@ -35,3 +35,8 @@ func UpdateUserPerms(newPermsId []uint, rid uint) (err error) {
 
 	return
 }
+
+func mergeNotPidPerms(p []model.Permission) (m []Menu) {
+
+	return
+}

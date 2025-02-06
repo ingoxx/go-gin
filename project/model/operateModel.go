@@ -3,7 +3,6 @@ package model
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"time"
 
@@ -92,6 +91,7 @@ func (o *OperateLogModel) AddOperateLog(ctx *gin.Context) (err error) {
 	}
 
 	if err := o.dataCount(ctx.Request.URL.Path); err != nil {
+
 		return err
 	}
 
@@ -122,6 +122,7 @@ func (o *OperateLogModel) recordHighFrequencyData(key string) (err error) {
 	if key == dao.LoginNum {
 		data, err = o.findSevenDaysLoginNum()
 		if err != nil {
+
 			return
 		}
 	} else if key == dao.RunLinuxCmdNum {
@@ -138,6 +139,7 @@ func (o *OperateLogModel) recordHighFrequencyData(key string) (err error) {
 
 	b, err := json.Marshal(&data)
 	if err != nil {
+
 		return
 	}
 
@@ -197,7 +199,7 @@ func (o *OperateLogModel) GetUserLoginNum() (data interface{}, err error) {
 	var md = make([]map[string]interface{}, 0)
 	var rd = make(map[string]interface{})
 
-	b, err := dao.Rds.GetData(dao.RunLinuxCmdNum)
+	b, err := dao.Rds.GetData(dao.UserLoginNum)
 	if err != nil {
 		return
 	}
@@ -295,10 +297,6 @@ func (o *OperateLogModel) findSevenDaysRunLinuxCmdNum() ([]map[string]interface{
 		dataList = append(dataList, data)
 	}
 
-	for k, v := range dataList {
-		fmt.Println(k, v)
-	}
-
 	return dataList, nil
 }
 
@@ -306,7 +304,8 @@ func (o *OperateLogModel) findUserLoginNum() ([]map[string]interface{}, error) {
 	var dataList = make([]map[string]interface{}, 0)
 	rows, err := dao.DB.Raw(`
 		select operator, count(1) as user_login_num from operate_log_models 
-		where url like '%/login%' GROUP BY operator;
+		where url like '%/login%' 
+		GROUP BY operator ORDER BY user_login_num LIMIT 5;
 	`).Rows()
 
 	if err != nil {
@@ -314,26 +313,17 @@ func (o *OperateLogModel) findUserLoginNum() ([]map[string]interface{}, error) {
 	}
 
 	for rows.Next() {
-		var date string
-		var runLinuxCmdNum int
+		var user string
+		var loginNum int
 		var data = make(map[string]interface{})
 
-		if err := rows.Scan(&date, &runLinuxCmdNum); err != nil {
+		if err := rows.Scan(&user, &loginNum); err != nil {
 			return dataList, err
 		}
 
-		parsedTime, err := time.Parse(time.RFC3339, date)
-		if err != nil {
-			return dataList, err
-		}
-
-		data["用户名"] = parsedTime.Format("2006-01-02")
-		data["总的平台登陆次数"] = runLinuxCmdNum
+		data["用户名"] = user
+		data["总的平台登陆次数"] = loginNum
 		dataList = append(dataList, data)
-	}
-
-	for k, v := range dataList {
-		fmt.Println(k, v)
 	}
 
 	return dataList, nil
