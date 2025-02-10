@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// AssetsProgramUpdateRecordModel 程序运行的日志列表, 记录程序执行的进度，状态等
 type AssetsProgramUpdateRecordModel struct {
 	ID         int64     `form:"id,omitempty" json:"id,omitempty" gorm:"primaryKey"`
 	Ip         string    `form:"ip" json:"ip,omitempty" gorm:"not null"`

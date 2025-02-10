@@ -11,3 +11,7 @@ type ProgramListForm struct {
 	EnName string `json:"enname" form:"ename"`
 	Path   string `json:"path" form:"path"`
 }
+
+type WebTerminalQuery struct {
+	ID uint `json:"server_id" form:"server_id" binding:"required"`
+}

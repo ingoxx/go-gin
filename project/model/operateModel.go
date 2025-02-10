@@ -82,7 +82,12 @@ func (o *OperateLogModel) AddOperateLog(ctx *gin.Context) (err error) {
 	// 重置缓冲区
 	buf.Reset()
 
-	o.Url = ctx.Request.URL.Path + ", " + string(resp)
+	if ctx.Request.URL.Path == "/assets/terminal" {
+		o.Url = ctx.Request.URL.Path + ", connect server: " + ctx.Query("ip")
+	} else {
+		o.Url = ctx.Request.URL.Path + ", " + string(resp)
+	}
+
 	o.Operator = ctx.Query("user")
 	o.Ip = ctx.RemoteIP()
 

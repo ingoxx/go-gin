@@ -15,6 +15,15 @@ func (v *ValidateData) ValidateStruct(s interface{}) (err error) {
 	return
 }
 
+func (v *ValidateData) ValidatePwdKey(fl validator.FieldLevel) (err error) {
+	return
+}
+
+func (v *ValidateData) RegisterValidation() (err error) {
+
+	return nil
+}
+
 func NewValidateData(v *validator.Validate) *ValidateData {
 	return &ValidateData{
 		validate: v,

@@ -2,6 +2,7 @@ package assets
 
 import (
 	"fmt"
+	"github.com/Lxb921006/Gin-bms/project/logger"
 	"github.com/Lxb921006/Gin-bms/project/logic/assets"
 	"github.com/Lxb921006/Gin-bms/project/model"
 	"github.com/Lxb921006/Gin-bms/project/service"
@@ -9,6 +10,9 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/mitchellh/mapstructure"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"strings"
 )
 
 var (
@@ -140,6 +144,7 @@ func UploadController(ctx *gin.Context) {
 	}
 }
 
+// ListController 服务器列表
 func ListController(ctx *gin.Context) {
 	var alc ListForm
 	data, err := alc.List(ctx)
@@ -157,12 +162,14 @@ func ListController(ctx *gin.Context) {
 		"pageSize": data.PageSize,
 		"config":   NewProgramConfig(),
 		"code":     10000,
+		"message":  "ok",
 	})
 }
 
+// CreateController 创建服务器
 func CreateController(ctx *gin.Context) {
-	var acf CreateForm
-	if err := acf.Create(ctx); err != nil {
+	var nca = NewCreateUpdateAssetsForm(ctx)
+	if err := nca.VerifyFrom(); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
 			"code":    10001,
@@ -170,15 +177,27 @@ func CreateController(ctx *gin.Context) {
 		return
 	}
 
+	if err := nca.Create(); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("%s 创建失败, errMsg: %v", nca.Ip, err.Error()),
+			"code":    10002,
+		})
+		return
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "创建完成",
+		"message": fmt.Sprintf("%s 创建成功", nca.Ip),
 		"code":    10000,
 	})
+
+	return
+
 }
 
+// UpdateController 更新服务器信息
 func UpdateController(ctx *gin.Context) {
-	var amf UpdateForm
-	if err := amf.Modify(ctx); err != nil {
+	var nca = NewCreateUpdateAssetsForm(ctx)
+	if err := nca.VerifyFrom(); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
 			"code":    10001,
@@ -186,12 +205,23 @@ func UpdateController(ctx *gin.Context) {
 		return
 	}
 
+	if err := nca.Update(); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("%s 更新失败, errMsg: %v", nca.Ip, err.Error()),
+			"code":    10002,
+		})
+		return
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "修改完成",
+		"message": fmt.Sprintf("%s 更新成功", nca.Ip),
 		"code":    10000,
 	})
+
+	return
 }
 
+// DeleteController 删除服务器
 func DeleteController(ctx *gin.Context) {
 	var adf DelForm
 	if err := adf.Del(ctx); err != nil {
@@ -203,7 +233,7 @@ func DeleteController(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "删除成功",
+		"message": fmt.Sprintf("%v 删除成功", adf.Ips),
 		"code":    10000,
 	})
 }
@@ -278,4 +308,79 @@ func ProgramListController(ctx *gin.Context) {
 		"code":    10000,
 		"data":    data,
 	})
+}
+
+// WebTerminalControllerOut 废弃
+func WebTerminalControllerOut(ctx *gin.Context) {
+	var wtq WebTerminalQuery
+	var am model.AssetsModel
+	if err := ctx.ShouldBind(&wtq); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+			"code":    10001,
+		})
+		return
+	}
+
+	ip, err := am.GetTerminalIp(wtq.ID)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10002,
+		})
+		return
+	}
+
+	// 代理请求
+	terminalUrl := fmt.Sprintf("http://%s:17600", ip)
+	target, err := url.Parse(terminalUrl)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10003,
+		})
+		return
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	// 修改请求路径，去除/terminal前缀
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+		req.URL.Path = strings.TrimPrefix(req.URL.Path, "/assets/terminal")
+		if req.URL.Path == "" {
+			req.URL.Path = "/"
+		}
+		// 可选：设置正确的Host和Header
+		req.Host = target.Host
+		req.Header.Set("X-Forwarded-Host", req.Host)
+	}
+
+	// 处理WebSocket升级请求
+	proxy.ModifyResponse = func(resp *http.Response) error {
+		if resp.StatusCode == http.StatusSwitchingProtocols {
+			return nil
+		}
+		return nil
+	}
+
+	proxy.ServeHTTP(ctx.Writer, ctx.Request)
+}
+
+// WebTerminalController 终端连接
+func WebTerminalController(ctx *gin.Context) {
+	conn, err := upGrader.Upgrade(ctx.Writer, ctx.Request, nil)
+	if err != nil {
+		return
+	}
+
+	defer conn.Close()
+
+	serverIp := ctx.Query("ip")
+	remoteIp := ctx.RemoteIP()
+	operator := ctx.Query("user")
+	if err := NewWebTerminal(conn, operator, remoteIp, serverIp).Ssh(); err != nil {
+		logger.Error(fmt.Sprintf("failed to ssh %s", serverIp))
+	}
+
 }

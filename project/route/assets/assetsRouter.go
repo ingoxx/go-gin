@@ -20,6 +20,8 @@ func Router(r *gin.Engine) {
 		assets.POST("/api", ac.RunProgramApiController)
 		assets.POST("/program/add", ac.AddProgramOperateController)
 		assets.GET("/program/list", ac.ProgramListController)
+		//assets.Any("/terminal/*path", ac.WebTerminalController)
+		assets.GET("/terminal", ac.WebTerminalController)
 		// 服务器的增删改查接口
 		assets.POST("/upload", ac.UploadController)
 		assets.POST("/add", ac.CreateController)

@@ -1,13 +1,18 @@
 package assets
 
 import (
+	"errors"
+	"github.com/Lxb921006/Gin-bms/project/command/rpcConfig"
 	"github.com/Lxb921006/Gin-bms/project/model"
 	"github.com/Lxb921006/Gin-bms/project/service"
 	"github.com/Lxb921006/Gin-bms/project/utils"
+	"github.com/Lxb921006/Gin-bms/project/utils/encryption"
 	"github.com/gin-gonic/gin"
+	"github.com/mitchellh/mapstructure"
+	"path/filepath"
 )
 
-//资产列表的crud-1
+// 服务器的增删改查
 
 type ListForm struct {
 	Ip      string `form:"ip,omitempty" json:"ip"`
@@ -39,34 +44,6 @@ func (a *ListForm) List(ctx *gin.Context) (data *service.Paginate, err error) {
 	return
 }
 
-type CreateForm struct {
-	Ip      []string `form:"ip" json:"ip"`
-	Project string   `form:"project" json:"project"`
-}
-
-func (a *CreateForm) Create(ctx *gin.Context) (err error) {
-	var am model.AssetsModel
-	var aml []*model.AssetsModel
-	if err = ctx.ShouldBindJSON(a); err != nil {
-		return
-	}
-
-	for _, ip := range a.Ip {
-		data := &model.AssetsModel{
-			Project: a.Project,
-			Ip:      ip,
-		}
-
-		aml = append(aml, data)
-	}
-
-	if err = am.Create(aml); err != nil {
-		return
-	}
-
-	return
-}
-
 type DelForm struct {
 	Ips []string `form:"ips" json:"ips" binding:"required"`
 }
@@ -84,26 +61,97 @@ func (a *DelForm) Del(ctx *gin.Context) (err error) {
 	return
 }
 
-type UpdateForm struct {
-	Id      int64  `form:"id" json:"id"`
-	Ip      string `form:"ip" json:"ip"`
-	Project string `form:"project" json:"project"`
+type CreateUpdateAssetsForm struct {
+	ID          uint   `json:"id" form:"id"`
+	Project     string `json:"project" form:"project" binding:"required"`
+	Ip          string `json:"ip" form:"ip" binding:"required"`
+	User        string `json:"user" form:"user" binding:"required"`
+	Port        uint   `json:"port" form:"port" binding:"required"`
+	Password    string `json:"password"  form:"password"`
+	Key         string `json:"key"`
+	Operator    string `json:"operator" form:"operator" binding:"required"`
+	ConnectType uint   `json:"connect_type" form:"connect_type" binding:"required"`
+	ctx         *gin.Context
+	am          model.AssetsModel
 }
 
-func (aef *UpdateForm) Modify(ctx *gin.Context) (err error) {
-	var am model.AssetsModel
+func (caf *CreateUpdateAssetsForm) VerifyFrom() (err error) {
+	if err := caf.ctx.ShouldBind(&caf); err != nil {
+		return err
+	}
+	return
+}
+
+func (caf *CreateUpdateAssetsForm) assetsData() (map[string]interface{}, error) {
 	var data = make(map[string]interface{})
-	if err = ctx.ShouldBind(aef); err != nil {
-		return
+	var keyFile string
+	formData, err := caf.ctx.MultipartForm()
+	if err != nil {
+		return data, err
 	}
 
-	data["id"] = aef.Id
-	data["ip"] = aef.Ip
-	data["project"] = aef.Project
+	if caf.ConnectType == 1 {
+		ks, err := encryption.NewKeyPwdEncryption(caf.Password, 1).Encryption()
+		if err != nil {
+			return nil, err
+		}
+		caf.Password = ks
+	} else if caf.ConnectType == 2 {
+		fileHandles := formData.File["file"]
+		for _, file := range fileHandles {
+			keyFile = filepath.Join(rpcConfig.UploadPath, file.Filename)
+			if err = caf.ctx.SaveUploadedFile(file, keyFile); err != nil {
+				return nil, err
+			}
+		}
+		ks, err := encryption.NewKeyPwdEncryption(keyFile, 2).Encryption()
+		if err != nil {
+			return data, err
+		}
+		caf.Key = ks
+	} else {
+		return nil, errors.New("未知登陆类型")
+	}
 
-	if err = am.Update(data); err != nil {
-		return
+	if err := mapstructure.Decode(caf, &caf.am); err != nil {
+		return nil, err
+	}
+
+	if caf.Key != "" {
+		caf.am.Key = caf.Key
+	}
+
+	return data, nil
+}
+
+func (caf *CreateUpdateAssetsForm) Create() (err error) {
+	_, err = caf.assetsData()
+	if err != nil {
+		return err
+	}
+
+	if err := caf.am.Create(caf.am); err != nil {
+		return err
 	}
 
 	return
+}
+
+func (caf *CreateUpdateAssetsForm) Update() (err error) {
+	_, err = caf.assetsData()
+	if err != nil {
+		return err
+	}
+
+	if err := caf.am.Update(caf.am); err != nil {
+		return err
+	}
+
+	return
+}
+
+func NewCreateUpdateAssetsForm(ctx *gin.Context) *CreateUpdateAssetsForm {
+	return &CreateUpdateAssetsForm{
+		ctx: ctx,
+	}
 }
