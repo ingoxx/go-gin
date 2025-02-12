@@ -32,6 +32,17 @@ message StreamRequest {
   string ip =3;
 }
 
+service StreamCheckSystemLogService {
+  rpc CheckSystemLog (StreamSystemLogRequest) returns (stream StreamReply) {}
+}
+
+message StreamSystemLogRequest {
+  string logName = 2;
+  string start = 3;
+  string end = 4;
+  string field = 5;
+}
+
 // The response message containing the greetings
 message StreamReply {
   string message = 1;

@@ -20,6 +20,10 @@ type Ws struct {
 	ProcessName string   `json:"name"`
 	Uuid        string   `json:"uuid"`
 	Cmd         string   `json:"cmd"`
+	LogName     string   `json:"log_name"`
+	Start       string   `json:"start"`
+	End         string   `json:"end"`
+	Field       string   `json:"field"`
 	wg          *sync.WaitGroup
 	limit       chan struct{}
 	output      chan map[string][]string
@@ -60,13 +64,17 @@ func (ws *Ws) Run() (err error) {
 	}
 
 	if ws.ProcessName == "runLinuxCmd" {
-		if errS := ws.AcpLinuxCmd(); errS != nil {
-			return
+		if err := ws.AcpLinuxCmd(); err != nil {
+			return err
+		}
+	} else if ws.ProcessName == "checkSystemLog" {
+		if err := ws.AcpSystemLog(); err != nil {
+			return err
 		}
 	} else {
-		if errS := ws.AcpProgramCmd(); errS != nil {
-			ws.Error(errS)
-			return
+		if err := ws.AcpProgramCmd(); err != nil {
+			ws.Error(err)
+			return err
 		}
 	}
 
@@ -87,7 +95,7 @@ func (ws *Ws) AcpLinuxCmd() (err error) {
 
 			defer conn.Close()
 
-			if err := client.NewGrpcClient(ws.ProcessName, ws.Uuid, ws.Cmd, ip, ws.Conn, conn).SendLinuxCmd(ws.wg, ws.limit, ws.output); err != nil {
+			if err := client.NewGrpcClient(ws.ProcessName, ws.Uuid, ws.Cmd, ip, ws.Conn, conn).CallSendLinuxCmdMth(ws.wg, ws.limit, ws.output); err != nil {
 				ws.Error(err)
 				return
 			}
@@ -121,12 +129,28 @@ func (ws *Ws) AcpProgramCmd() (err error) {
 			return err
 		}
 
-		if err := client.NewGrpcClient(ws.ProcessName, ws.Uuid, ws.Cmd, ip, ws.Conn, conn).SendProgramCmd(); err != nil {
+		if err := client.NewGrpcClient(ws.ProcessName, ws.Uuid, ws.Cmd, ip, ws.Conn, conn).CallSendProgramCmdMth(); err != nil {
 			return err
 		}
 	}
 
 	return
+}
+
+func (ws *Ws) AcpSystemLog() error {
+	for _, ip := range ws.Ip {
+		server := fmt.Sprintf("%s:12306", ip)
+		conn, err := grpc.NewClient(server, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			return err
+		}
+
+		if err := client.NewGrpcClient(ws.ProcessName, ws.Uuid, ws.Cmd, ip, ws.Conn, conn).CallSystemLogMth(ws.LogName, ws.Start, ws.End, ws.Field); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // SendFileWs 文件分发

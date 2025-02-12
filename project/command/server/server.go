@@ -24,10 +24,12 @@ var (
 type server struct {
 	pb.UnimplementedStreamUpdateProgramServiceServer
 	pb.UnimplementedFileTransferServiceServer
+	pb.UnimplementedStreamCheckSystemLogServiceServer
 }
 
 type runScriptData struct {
 	req        *pb.StreamRequest
+	systemLog  *pb.StreamSystemLogRequest
 	stream     pb.StreamUpdateProgramService_DockerUpdateServer
 	program    string
 	programLog string
@@ -129,20 +131,27 @@ func (s *server) JavaUpdate(req *pb.StreamRequest, stream pb.StreamUpdateProgram
 
 func (s *server) scriptOutPut(data runScriptData) (err error) {
 	if _, err = os.Open(data.program); err != nil {
-		if err = data.stream.Send(&pb.StreamReply{Message: fmt.Sprintf("%s, %s not found, errMsg: %s", data.req.Ip, data.program, err.Error())}); err != nil {
-			return
-		}
 		return
 	}
 
 	var makeCmd string
-	if data.req.GetUuid() != "" {
-		makeCmd = fmt.Sprintf("sh %s %s | tee %s", data.program, data.req.GetUuid(), data.programLog)
-	} else if data.req.GetCmd() != "" {
-		makeCmd = fmt.Sprintf("sh %s \"%s\" | tee %s", data.program, data.req.GetCmd(), data.programLog)
+	if data.req != nil {
+		if data.req.GetUuid() != "" {
+			makeCmd = fmt.Sprintf("bash %s %s | tee %s", data.program, data.req.GetUuid(), data.programLog)
+		} else if data.req.GetCmd() != "" {
+			makeCmd = fmt.Sprintf("bash %s \"%s\" | tee %s", data.program, data.req.GetCmd(), data.programLog)
+		}
+	} else if data.systemLog != nil {
+		makeCmd = fmt.Sprintf("bash %s %s %s %s %s| tee %s",
+			data.program,
+			data.systemLog.GetLogName(),
+			data.systemLog.GetStart(),
+			data.systemLog.GetEnd(),
+			data.systemLog.GetField(),
+			data.programLog)
 	}
 
-	cmd := exec.Command("sh", "-c", makeCmd)
+	cmd := exec.Command("bash", "-c", makeCmd)
 	// 标准输出
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -197,12 +206,32 @@ func (s *server) RunLinuxCmd(req *pb.StreamRequest, stream pb.StreamUpdateProgra
 	data := runScriptData{
 		req:        req,
 		stream:     stream,
-		program:    script.RunLinuxCmd,
+		program:    script.RunLinuxCmdScript,
 		programLog: script.RunLinuxCmdLog,
 	}
 
 	if err = s.scriptOutPut(data); err != nil {
 		if err = data.stream.Send(&pb.StreamReply{Message: fmt.Sprintf("%s fail to run %s, errMsg: %s\n", req.GetIp(), data.program, err.Error())}); err != nil {
+			log.Printf("fail to run send msg, errMsg: %s\n", err.Error())
+		}
+		return
+	}
+
+	return
+}
+
+func (s *server) CheckSystemLog(req *pb.StreamSystemLogRequest, stream pb.StreamCheckSystemLogService_CheckSystemLogServer) (err error) {
+	log.Println("received CheckSystemLog")
+
+	data := runScriptData{
+		systemLog:  req,
+		stream:     stream,
+		program:    script.CheckSystemLogScript,
+		programLog: script.CheckSystemLog,
+	}
+
+	if err = s.scriptOutPut(data); err != nil {
+		if err = data.stream.Send(&pb.StreamReply{Message: err.Error()}); err != nil {
 			log.Printf("fail to run send msg, errMsg: %s\n", err.Error())
 		}
 		return
@@ -335,6 +364,7 @@ func main() {
 	s := grpc.NewServer()
 	pb.RegisterStreamUpdateProgramServiceServer(s, &server{})
 	pb.RegisterFileTransferServiceServer(s, &server{})
+	pb.RegisterStreamCheckSystemLogServiceServer(s, &server{})
 
 	log.Printf("server listening at %v", lis.Addr())
 

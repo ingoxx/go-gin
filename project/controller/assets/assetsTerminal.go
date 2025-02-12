@@ -75,17 +75,6 @@ func (wt *WebTerminal) Ssh() (err error) {
 	defer session.Close()
 
 	// 分配伪终端
-	//modes := ssh.TerminalModes{
-	//	ssh.ECHO:          1, // 启用回显
-	//	ssh.TTY_OP_ISPEED: 14400,
-	//	ssh.TTY_OP_OSPEED: 14400,
-	//	ssh.ECHOCTL:       0, // 禁用控制字符回显
-	//	ssh.OCRNL:         1, // 将回车转换为换行
-	//	ssh.ONLCR:         1, // 将换行转换为回车换行（重要）
-	//	ssh.ICRNL:         1, // 将回车转换为换行（输入方向）
-	//	ssh.IXON:          1, // 启用软件流控制
-	//}
-
 	modes := ssh.TerminalModes{
 		ssh.ECHO:    1, // 启用回显
 		ssh.ECHOCTL: 0, // 禁用控制字符回显
@@ -158,7 +147,7 @@ func (wt *WebTerminal) saveCmd(cmd string) error {
 	var record = make(map[string]string)
 
 	record["user"] = wt.user
-	record["url"] = fmt.Sprintf("server ip: %s, run cmd: %s", wt.ip, cmd)
+	record["url"] = fmt.Sprintf("终端命令操作审计, server ip: %s, run cmd: %s", wt.ip, cmd)
 	record["ip"] = wt.remoteIp
 
 	if err := addLog.AloneAddOperateLog(record); err != nil {

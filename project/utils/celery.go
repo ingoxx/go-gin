@@ -45,7 +45,7 @@ func NewProgramAsyncRunCelery() *ProgramAsyncRunCelery {
 
 			cn := client.NewGrpcClient(data["update_name"].(string), data["uuid"].(string), "", dataModel["ip"].(string), nil, conn)
 			go func() {
-				if err := cn.SendProgramCmd(); err != nil {
+				if err := cn.CallSendProgramCmdMth(); err != nil {
 					dataModel["status"] = 300
 					if err := apr.Update(dataModel); err != nil {
 						logger.Error("uuid: %v, 更新失败, errMsg: %s, 2", dataModel["uuid"], err.Error())

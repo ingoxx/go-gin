@@ -25,7 +25,7 @@ var (
 	}
 )
 
-// RunProgramController 程序更新-在新的页面, 查看系统原始日志, 执行linux命令
+// RunProgramController 程序更新-在新的页面, 查看系统日志, 执行linux命令
 func RunProgramController(ctx *gin.Context) {
 	conn, err := upGrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {

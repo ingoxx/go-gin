@@ -17,7 +17,7 @@ import (
 )
 
 type GrpcClient struct {
-	Name    string
+	Name    string // 操作函数名
 	Uuid    string
 	File    string
 	Cmd     string
@@ -28,6 +28,7 @@ type GrpcClient struct {
 	lock    *sync.Mutex
 	wg      sync.WaitGroup
 	sc      pb.StreamUpdateProgramServiceClient
+	sl      pb.StreamCheckSystemLogServiceClient
 }
 
 func NewGrpcClient(name, uuid, cmd, ip string, ws *websocket.Conn, rc *grpc.ClientConn) *GrpcClient {
@@ -40,13 +41,39 @@ func NewGrpcClient(name, uuid, cmd, ip string, ws *websocket.Conn, rc *grpc.Clie
 		RpcConn: rc,
 		lock:    new(sync.Mutex),
 		sc:      pb.NewStreamUpdateProgramServiceClient(rc),
+		sl:      pb.NewStreamCheckSystemLogServiceClient(rc),
 	}
 }
 
-func (rc *GrpcClient) SendLinuxCmd(wg *sync.WaitGroup, limit chan struct{}, output chan map[string][]string) (err error) {
+func (rc *GrpcClient) CallSendLinuxCmdMth(wg *sync.WaitGroup, limit chan struct{}, output chan map[string][]string) (err error) {
 	if err := rc.RunLinuxCmd(wg, limit, output); err != nil {
 		return err
 	}
+	return
+}
+
+func (rc *GrpcClient) CallSystemLogMth(log, start, end, field string) (err error) {
+	data := &pb.StreamSystemLogRequest{LogName: log, Start: start, End: end, Field: field}
+	stream, err := rc.sl.CheckSystemLog(context.Background(), data)
+	if err != nil {
+		return
+	}
+
+	defer rc.RpcConn.Close()
+
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+
+		if rc.WsConn != nil {
+			if err = rc.WsConn.WriteMessage(1, []byte(fmt.Sprintf("%s\n", resp.Message))); err != nil {
+				return err
+			}
+		}
+	}
+
 	return
 }
 
@@ -76,7 +103,7 @@ func (rc *GrpcClient) RunLinuxCmd(wg *sync.WaitGroup, limit chan struct{}, outpu
 	return
 }
 
-func (rc *GrpcClient) SendProgramCmd() (err error) {
+func (rc *GrpcClient) CallSendProgramCmdMth() (err error) {
 	switch rc.Name {
 	case "dockerUpdate":
 		if err := rc.DockerUpdate(); err != nil {
