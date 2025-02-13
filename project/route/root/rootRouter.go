@@ -1,6 +1,7 @@
 package root
 
 import (
+	"github.com/Lxb921006/Gin-bms/project/route/cluster"
 	"net/http"
 	"time"
 
@@ -20,7 +21,11 @@ func SetupRouter() *http.Server {
 	router := gin.Default()
 	router.Static("/static", "../static")
 	// route.LoadHTMLGlob("../../templates")
-	router.Use(middleware.AllowCos(), middleware.TokenVerify(), middleware.PermsVerify(), middleware.ReqFrequencyLimit(), middleware.OperateRecord())
+	router.Use(middleware.AllowCos(),
+		middleware.TokenVerify(),
+		middleware.PermsVerify(),
+		middleware.ReqFrequencyLimit(),
+		middleware.OperateRecord())
 
 	//加载路由配置
 	user.Router(router)
@@ -29,6 +34,7 @@ func SetupRouter() *http.Server {
 	login.Router(router)
 	operate.Router(router)
 	assets.Router(router)
+	cluster.Router(router)
 
 	t := &http.Server{
 		Addr:           ":9293",

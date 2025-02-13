@@ -14,6 +14,7 @@ func InitTable() (err error) {
 		&model.AssetsModel{},
 		&model.AssetsProgramUpdateRecordModel{},
 		&model.AssetsProgramModel{},
+		&model.ClusterModel{},
 	)
 
 	return

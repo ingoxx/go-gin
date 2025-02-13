@@ -5,7 +5,6 @@ import (
 	"github.com/Lxb921006/Gin-bms/project/command/rpcConfig"
 	"github.com/Lxb921006/Gin-bms/project/model"
 	"github.com/Lxb921006/Gin-bms/project/service"
-	"github.com/Lxb921006/Gin-bms/project/utils"
 	"github.com/Lxb921006/Gin-bms/project/utils/encryption"
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
@@ -15,9 +14,10 @@ import (
 // 服务器的增删改查
 
 type ListForm struct {
-	Ip      string `form:"ip,omitempty" json:"ip"`
-	Project string `form:"project,omitempty" json:"project"`
-	Page    int    `form:"page" json:"page" validate:"min=1" binding:"required"`
+	Ip        string `form:"ip,omitempty" json:"ip"`
+	Project   string `form:"project,omitempty" json:"project"`
+	ClusterID *uint  `form:"cluster_id,omitempty" json:"cluster_id"`
+	Page      int    `form:"page" json:"page" validate:"min=1" binding:"required"`
 }
 
 func (a *ListForm) List(ctx *gin.Context) (data *service.Paginate, err error) {
@@ -32,7 +32,7 @@ func (a *ListForm) List(ctx *gin.Context) (data *service.Paginate, err error) {
 		return
 	}
 
-	if err = utils.CopyStruct(a, &al); err != nil {
+	if err = mapstructure.Decode(a, &al); err != nil {
 		return
 	}
 
@@ -42,6 +42,16 @@ func (a *ListForm) List(ctx *gin.Context) (data *service.Paginate, err error) {
 	}
 
 	return
+}
+
+func (a *ListForm) GetAllClusterData() ([]*model.ClusterModel, error) {
+	var cm *model.ClusterModel
+	allData, err := cm.GetAllClusterData()
+	if err != nil {
+		return nil, err
+	}
+
+	return allData, nil
 }
 
 type DelForm struct {
@@ -63,6 +73,7 @@ func (a *DelForm) Del(ctx *gin.Context) (err error) {
 
 type CreateUpdateAssetsForm struct {
 	ID          uint   `json:"id" form:"id"`
+	NodeType    uint   `json:"node_type" form:"node_type"`
 	Project     string `json:"project" form:"project" binding:"required"`
 	Ip          string `json:"ip" form:"ip" binding:"required"`
 	User        string `json:"user" form:"user" binding:"required"`
@@ -73,6 +84,8 @@ type CreateUpdateAssetsForm struct {
 	ConnectType uint   `json:"connect_type" form:"connect_type" binding:"required"`
 	ctx         *gin.Context
 	am          model.AssetsModel
+	ClusterID   *uint `json:"cluster_id" form:"cluster_id"`
+	//Cluster     model.ClusterModel `json:"cluster" gorm:"constraint:OnDelete:SET NULL;"`
 }
 
 func (caf *CreateUpdateAssetsForm) VerifyFrom() (err error) {

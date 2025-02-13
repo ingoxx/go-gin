@@ -34,20 +34,15 @@ func CreatePermMenu(ctx *gin.Context) {
 	if err := ctx.ShouldBindWith(&pd, binding.Form); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
-			"code":    30001,
+			"code":    10001,
 		})
 		return
 	}
 
-	//p.Path = pd.Path
-	//p.Title = pd.Title
-	//p.ParentId = pd.ParentId
-	//p.Level = pd.Level
-
 	if err := mapstructure.Decode(pd, &p); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": fmt.Sprintf("[%s] 创建失败, errMsg: %v", pd.Title, err.Error()),
-			"code":    30003,
+			"code":    10002,
 		})
 		return
 	}
@@ -55,7 +50,7 @@ func CreatePermMenu(ctx *gin.Context) {
 	if err := p.CreatePerms(p); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": fmt.Sprintf("[%s] 创建失败, errMsg: %s", pd.Title, err.Error()),
-			"code":    30002,
+			"code":    10003,
 		})
 		return
 	}
@@ -74,7 +69,7 @@ func DeletePermsMenu(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&dp); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
-			"code":    30003,
+			"code":    10001,
 		})
 		return
 	}
@@ -82,7 +77,7 @@ func DeletePermsMenu(ctx *gin.Context) {
 	if err := p.DeletePerms(dp.Pid); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
-			"code":    30004,
+			"code":    10002,
 		})
 		return
 	}
@@ -100,20 +95,26 @@ func GetPermsList(ctx *gin.Context) {
 	if err := ctx.ShouldBindQuery(&pp); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
-			"code":    30005,
+			"code":    10001,
 		})
 		return
 	}
 
 	validate := validator.New()
 	vd := NewValidateData(validate)
-	vd.ValidateStruct(pp)
+	if err := vd.ValidateStruct(pp); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10002,
+		})
+		return
+	}
 
 	data, err := p.GetPermsList(pp.Page)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
-			"code":    30006,
+			"code":    10003,
 		})
 		return
 	}

@@ -156,10 +156,20 @@ func ListController(ctx *gin.Context) {
 		return
 	}
 
+	clusterData, err := alc.GetAllClusterData()
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10002,
+		})
+		return
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"data":     data.ModelSlice,
 		"total":    data.Total,
 		"pageSize": data.PageSize,
+		"clusters": clusterData,
 		"config":   NewProgramConfig(),
 		"code":     10000,
 		"message":  "ok",
