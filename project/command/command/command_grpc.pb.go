@@ -571,3 +571,231 @@ var StreamCheckSystemLogService_ServiceDesc = grpc.ServiceDesc{
 	},
 	Metadata: "command.proto",
 }
+
+const (
+	ClusterOperateService_ClusterInit_FullMethodName        = "/command.ClusterOperateService/ClusterInit"
+	ClusterOperateService_ClusterAddNode_FullMethodName     = "/command.ClusterOperateService/ClusterAddNode"
+	ClusterOperateService_ClusterLeaveSwarm_FullMethodName  = "/command.ClusterOperateService/ClusterLeaveSwarm"
+	ClusterOperateService_ClusterRemoveSwarm_FullMethodName = "/command.ClusterOperateService/ClusterRemoveSwarm"
+)
+
+// ClusterOperateServiceClient is the client API for ClusterOperateService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ClusterOperateServiceClient interface {
+	ClusterInit(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error)
+	ClusterAddNode(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error)
+	ClusterLeaveSwarm(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error)
+	ClusterRemoveSwarm(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error)
+}
+
+type clusterOperateServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewClusterOperateServiceClient(cc grpc.ClientConnInterface) ClusterOperateServiceClient {
+	return &clusterOperateServiceClient{cc}
+}
+
+func (c *clusterOperateServiceClient) ClusterInit(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ClusterOperateService_ServiceDesc.Streams[0], ClusterOperateService_ClusterInit_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamClusterOperateReq, StreamClusterOperateResp]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ClusterOperateService_ClusterInitClient = grpc.ServerStreamingClient[StreamClusterOperateResp]
+
+func (c *clusterOperateServiceClient) ClusterAddNode(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ClusterOperateService_ServiceDesc.Streams[1], ClusterOperateService_ClusterAddNode_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamClusterOperateReq, StreamClusterOperateResp]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ClusterOperateService_ClusterAddNodeClient = grpc.ServerStreamingClient[StreamClusterOperateResp]
+
+func (c *clusterOperateServiceClient) ClusterLeaveSwarm(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ClusterOperateService_ServiceDesc.Streams[2], ClusterOperateService_ClusterLeaveSwarm_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamClusterOperateReq, StreamClusterOperateResp]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ClusterOperateService_ClusterLeaveSwarmClient = grpc.ServerStreamingClient[StreamClusterOperateResp]
+
+func (c *clusterOperateServiceClient) ClusterRemoveSwarm(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ClusterOperateService_ServiceDesc.Streams[3], ClusterOperateService_ClusterRemoveSwarm_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamClusterOperateReq, StreamClusterOperateResp]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ClusterOperateService_ClusterRemoveSwarmClient = grpc.ServerStreamingClient[StreamClusterOperateResp]
+
+// ClusterOperateServiceServer is the server API for ClusterOperateService service.
+// All implementations must embed UnimplementedClusterOperateServiceServer
+// for forward compatibility.
+type ClusterOperateServiceServer interface {
+	ClusterInit(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error
+	ClusterAddNode(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error
+	ClusterLeaveSwarm(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error
+	ClusterRemoveSwarm(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error
+	mustEmbedUnimplementedClusterOperateServiceServer()
+}
+
+// UnimplementedClusterOperateServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedClusterOperateServiceServer struct{}
+
+func (UnimplementedClusterOperateServiceServer) ClusterInit(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error {
+	return status.Errorf(codes.Unimplemented, "method ClusterInit not implemented")
+}
+func (UnimplementedClusterOperateServiceServer) ClusterAddNode(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error {
+	return status.Errorf(codes.Unimplemented, "method ClusterAddNode not implemented")
+}
+func (UnimplementedClusterOperateServiceServer) ClusterLeaveSwarm(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error {
+	return status.Errorf(codes.Unimplemented, "method ClusterLeaveSwarm not implemented")
+}
+func (UnimplementedClusterOperateServiceServer) ClusterRemoveSwarm(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error {
+	return status.Errorf(codes.Unimplemented, "method ClusterRemoveSwarm not implemented")
+}
+func (UnimplementedClusterOperateServiceServer) mustEmbedUnimplementedClusterOperateServiceServer() {}
+func (UnimplementedClusterOperateServiceServer) testEmbeddedByValue()                               {}
+
+// UnsafeClusterOperateServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ClusterOperateServiceServer will
+// result in compilation errors.
+type UnsafeClusterOperateServiceServer interface {
+	mustEmbedUnimplementedClusterOperateServiceServer()
+}
+
+func RegisterClusterOperateServiceServer(s grpc.ServiceRegistrar, srv ClusterOperateServiceServer) {
+	// If the following call pancis, it indicates UnimplementedClusterOperateServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&ClusterOperateService_ServiceDesc, srv)
+}
+
+func _ClusterOperateService_ClusterInit_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamClusterOperateReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ClusterOperateServiceServer).ClusterInit(m, &grpc.GenericServerStream[StreamClusterOperateReq, StreamClusterOperateResp]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ClusterOperateService_ClusterInitServer = grpc.ServerStreamingServer[StreamClusterOperateResp]
+
+func _ClusterOperateService_ClusterAddNode_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamClusterOperateReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ClusterOperateServiceServer).ClusterAddNode(m, &grpc.GenericServerStream[StreamClusterOperateReq, StreamClusterOperateResp]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ClusterOperateService_ClusterAddNodeServer = grpc.ServerStreamingServer[StreamClusterOperateResp]
+
+func _ClusterOperateService_ClusterLeaveSwarm_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamClusterOperateReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ClusterOperateServiceServer).ClusterLeaveSwarm(m, &grpc.GenericServerStream[StreamClusterOperateReq, StreamClusterOperateResp]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ClusterOperateService_ClusterLeaveSwarmServer = grpc.ServerStreamingServer[StreamClusterOperateResp]
+
+func _ClusterOperateService_ClusterRemoveSwarm_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamClusterOperateReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ClusterOperateServiceServer).ClusterRemoveSwarm(m, &grpc.GenericServerStream[StreamClusterOperateReq, StreamClusterOperateResp]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ClusterOperateService_ClusterRemoveSwarmServer = grpc.ServerStreamingServer[StreamClusterOperateResp]
+
+// ClusterOperateService_ServiceDesc is the grpc.ServiceDesc for ClusterOperateService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ClusterOperateService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "command.ClusterOperateService",
+	HandlerType: (*ClusterOperateServiceServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ClusterInit",
+			Handler:       _ClusterOperateService_ClusterInit_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ClusterAddNode",
+			Handler:       _ClusterOperateService_ClusterAddNode_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ClusterLeaveSwarm",
+			Handler:       _ClusterOperateService_ClusterLeaveSwarm_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ClusterRemoveSwarm",
+			Handler:       _ClusterOperateService_ClusterRemoveSwarm_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "command.proto",
+}

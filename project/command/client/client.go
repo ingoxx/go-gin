@@ -29,6 +29,7 @@ type GrpcClient struct {
 	wg      sync.WaitGroup
 	sc      pb.StreamUpdateProgramServiceClient
 	sl      pb.StreamCheckSystemLogServiceClient
+	ds      pb.ClusterOperateServiceClient
 }
 
 func NewGrpcClient(name, uuid, cmd, ip string, ws *websocket.Conn, rc *grpc.ClientConn) *GrpcClient {
@@ -42,6 +43,7 @@ func NewGrpcClient(name, uuid, cmd, ip string, ws *websocket.Conn, rc *grpc.Clie
 		lock:    new(sync.Mutex),
 		sc:      pb.NewStreamUpdateProgramServiceClient(rc),
 		sl:      pb.NewStreamCheckSystemLogServiceClient(rc),
+		ds:      pb.NewClusterOperateServiceClient(rc),
 	}
 }
 
@@ -224,6 +226,19 @@ func (rc *GrpcClient) JavaUpdateLog() (err error) {
 
 	}
 
+	return
+}
+
+func (rc *GrpcClient) CreateSwarm(masterIP string) (err error) {
+
+	return
+}
+
+func (rc *GrpcClient) JoinSwarm(masterIP, nodeIp, token string) (err error) {
+	return
+}
+
+func (rc *GrpcClient) LeaveSwarm() (err error) {
 	return
 }
 

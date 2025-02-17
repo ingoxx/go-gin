@@ -1,0 +1,2 @@
+[ERROR] 2025/02/17 10:39:08 D:/project/github.com/Lxb921006/go-gin/project/controller/assets/assetsTerminal.go:181: WebSocket 读取失败: websocket: close 1005 (no status)
+[ERROR] 2025/02/17 10:41:28 D:/project/github.com/Lxb921006/go-gin/project/controller/assets/assetsTerminal.go:181: WebSocket 读取失败: websocket: close 1005 (no status)

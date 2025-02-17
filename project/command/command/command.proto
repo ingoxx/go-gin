@@ -43,6 +43,26 @@ message StreamSystemLogRequest {
   string field = 5;
 }
 
+service ClusterOperateService {
+  rpc ClusterInit(StreamClusterOperateReq) returns (stream StreamClusterOperateResp) {} //初始化集群，创建
+  rpc ClusterAddNode(StreamClusterOperateReq) returns (stream StreamClusterOperateResp) {} // 添加到集群
+  rpc ClusterLeaveSwarm(StreamClusterOperateReq) returns (stream StreamClusterOperateResp) {} // 退出集群
+  rpc ClusterRemoveSwarm(StreamClusterOperateReq) returns (stream StreamClusterOperateResp) {} // 删除集群
+}
+
+message StreamClusterOperateReq {
+ string masterIp = 1;
+ string token = 2;
+ string nodeIp = 3;
+}
+
+message StreamClusterOperateResp {
+  string clusterID = 1;
+  string token = 2;
+  string message = 3;
+  string ip = 4;
+}
+
 // The response message containing the greetings
 message StreamReply {
   string message = 1;

@@ -10,6 +10,7 @@ import (
 
 func CheckClusterListController(ctx *gin.Context) {
 	var cm model.ClusterModel
+	var am model.AssetsModel
 	var query CheckClusterQuery
 	if err := ctx.ShouldBind(&query); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -32,17 +33,25 @@ func CheckClusterListController(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
-			"code":    10001,
+			"code":    10002,
 		})
 		return
 	}
 
-	fmt.Println("data >>> ", data)
+	servers, err := am.GetAllServersIp()
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10003,
+		})
+		return
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"data":     data.ModelSlice,
 		"total":    data.Total,
 		"pageSize": data.PageSize,
+		"servers":  servers,
 		"code":     10000,
 		"message":  "ok",
 	})
@@ -53,7 +62,8 @@ func CheckClusterListController(ctx *gin.Context) {
 func AddClusterController(ctx *gin.Context) {
 	var add AddClusterForm
 	var cm model.ClusterModel
-	if err := ctx.ShouldBind(&add); err != nil {
+	var sw SwarmOperate
+	if err := ctx.ShouldBindJSON(&add); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
 			"code":    10001,
@@ -61,7 +71,7 @@ func AddClusterController(ctx *gin.Context) {
 		return
 	}
 
-	if err := mapstructure.Decode(add, &cm); err != nil {
+	if err := mapstructure.Decode(add, &sw); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": fmt.Sprintf("集群: [%s] 创建失败, errMsg: %v", add.Name, err.Error()),
 			"code":    10002,
@@ -69,10 +79,27 @@ func AddClusterController(ctx *gin.Context) {
 		return
 	}
 
-	if err := cm.Add(cm); err != nil {
+	_, err := sw.CreateCluster()
+	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": fmt.Sprintf("集群: [%s] 创建失败, errMsg: %v", add.Name, err.Error()),
 			"code":    10003,
+		})
+		return
+	}
+
+	if err := mapstructure.Decode(&sw, &cm); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("集群: [%s] 创建失败, errMsg: %v", add.Name, err.Error()),
+			"code":    10004,
+		})
+		return
+	}
+
+	if err := cm.Add(cm); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("集群: [%s] 创建失败, errMsg: %v", add.Name, err.Error()),
+			"code":    10005,
 		})
 		return
 	}
@@ -82,5 +109,12 @@ func AddClusterController(ctx *gin.Context) {
 		"code":    10000,
 	})
 	return
+}
+
+func JoinClusterController(ctx *gin.Context) {
+
+}
+
+func LeaveClusterController(ctx *gin.Context) {
 
 }

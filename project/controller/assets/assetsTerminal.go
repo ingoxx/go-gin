@@ -1,6 +1,8 @@
 package assets
 
 import (
+	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Lxb921006/Gin-bms/project/logger"
@@ -8,6 +10,7 @@ import (
 	"github.com/Lxb921006/Gin-bms/project/utils/encryption"
 	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/ssh"
+	"io"
 	"sync"
 	"time"
 )
@@ -18,6 +21,11 @@ type CommandCapture struct {
 	StartTime time.Time
 }
 
+type outputSync struct {
+	dataChan chan []byte
+	quitChan chan struct{}
+}
+
 type WebTerminal struct {
 	wsConn   *websocket.Conn
 	ip       string
@@ -25,6 +33,7 @@ type WebTerminal struct {
 	user     string
 	am       model.AssetsModel
 	cmdCache *CommandCapture
+	wsMutex  sync.Mutex
 }
 
 func NewWebTerminal(wc *websocket.Conn, user, remoteIp, ip string) *WebTerminal {
@@ -50,96 +59,156 @@ func (wt *WebTerminal) Ssh() (err error) {
 		return err
 	}
 
-	// 连接 SSH
+	session, err := wt.sshSession(config)
+	if err != nil {
+		return err
+	}
+
+	defer session.Close()
+
+	stdin, _ := session.StdinPipe()
+	stdout, _ := session.StdoutPipe()
+	stderr, _ := session.StderrPipe()
+	reader := io.MultiReader(stdout, stderr)
+
+	if err := session.Shell(); err != nil {
+		logger.Error(fmt.Sprintf("启动 shell 失败, errMsg: %s", err.Error()))
+		if err := wt.wsConn.WriteMessage(websocket.TextMessage, []byte("启动 shell 失败: "+err.Error())); err != nil {
+			logger.Error(fmt.Sprintf("websocket响应失败, errMsg: %s", err.Error()))
+		}
+
+		return err
+	}
+
+	go wt.handleOutput(reader)
+
+	wt.handleInput(stdin, session)
+
+	return nil
+}
+
+func (wt *WebTerminal) sshSession(config *ssh.ClientConfig) (*ssh.Session, error) {
 	addr := fmt.Sprintf("%s:%d", wt.am.Ip, wt.am.Port)
 	client, err := ssh.Dial("tcp", addr, config)
 	if err != nil {
+		logger.Error(fmt.Sprintf("SSH 连接失败: %s", err.Error()))
 		if err := wt.wsConn.WriteMessage(websocket.TextMessage, []byte("SSH 连接失败: "+err.Error())); err != nil {
-			logger.Error(fmt.Sprintf("websocket响应失败 1, errMsg: %s", err.Error()))
-			return err
+			logger.Error(fmt.Sprintf("websocket响应失败, errMsg: %s", err.Error()))
 		}
-		return err
+		return nil, err
 	}
+	//defer client.Close()
 
-	defer client.Close()
-
-	// 创建 SSH Session
 	session, err := client.NewSession()
 	if err != nil {
+		logger.Error(fmt.Sprintf("创建 SSH Session 失败: %s", err.Error()))
 		if err := wt.wsConn.WriteMessage(websocket.TextMessage, []byte("创建 SSH Session 失败: "+err.Error())); err != nil {
-			logger.Error(fmt.Sprintf("websocket响应失败 2, errMsg: %s", err.Error()))
-			return err
+			logger.Error(fmt.Sprintf("websocket响应失败, errMsg: %s", err.Error()))
 		}
-		return err
-	}
-	defer session.Close()
 
-	// 分配伪终端
+		return nil, err
+	}
+
+	cols, rows := 80, 24
+
 	modes := ssh.TerminalModes{
-		ssh.ECHO:    1, // 启用回显
-		ssh.ECHOCTL: 0, // 禁用控制字符回显
-		ssh.OCRNL:   1, // 转换回车为换行
-		ssh.ONLCR:   1, // 转换换行为回车换行
-		ssh.ICRNL:   1, // 转换输入回车为换行
-		ssh.IGNCR:   0, // 不忽略回车
-		ssh.INLCR:   0, // 不转换换行为回车
-		ssh.ISIG:    1, // 启用信号
-		ssh.IEXTEN:  1, // 启用扩展功能
-		ssh.IXANY:   1, // 允许任何字符重启输出
-		ssh.IXON:    1, // 启用软件流控
-		ssh.VSTATUS: 0, // 禁用状态返回
+		ssh.ECHO:    1,
+		ssh.ECHOCTL: 0,
+		ssh.IGNCR:   0,
+		ssh.ICRNL:   1,
+		ssh.OCRNL:   1,
+		ssh.ONLCR:   1,
 	}
-	if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
+
+	if err := session.RequestPty("xterm-256color", rows, cols, modes); err != nil {
+		logger.Error(fmt.Sprintf("请求伪终端失败: %s", err.Error()))
 		if err := wt.wsConn.WriteMessage(websocket.TextMessage, []byte("请求伪终端失败: "+err.Error())); err != nil {
-			logger.Error(fmt.Sprintf("websocket响应失败 3, errMsg: %s", err.Error()))
-			return err
+			logger.Error(fmt.Sprintf("websocket响应失败, errMsg: %s", err.Error()))
 		}
-		return err
+
+		return nil, err
 	}
 
-	// 获取 SSH 输入输出
-	stdin, _ := session.StdinPipe()
-	stdout, _ := session.StdoutPipe()
+	return session, nil
+}
 
-	// 开启 shell
-	if err := session.Shell(); err != nil {
-		if err := wt.wsConn.WriteMessage(websocket.TextMessage, []byte("启动 shell 失败: "+err.Error())); err != nil {
-			logger.Error(fmt.Sprintf("websocket响应失败 4, errMsg: %s", err.Error()))
-			return err
-		}
-		return err
-	}
-
-	// 读取 SSH 输出并写入 WebSocket
-	go func() {
-		buf := make([]byte, 1024)
-		for {
-			n, err := stdout.Read(buf)
-			if err != nil {
-				break
-			}
-			if err := wt.wsConn.WriteMessage(websocket.TextMessage, buf[:n]); err != nil {
-				logger.Error(fmt.Sprintf("websocket响应失败 5, errMsg: %s", err.Error()))
-				return
-			}
-		}
-	}()
-
-	// 读取 WebSocket 输入并写入 SSH
+func (wt *WebTerminal) handleInput(stdin io.Writer, session *ssh.Session) {
 	for {
 		_, msg, err := wt.wsConn.ReadMessage()
 		if err != nil {
+			logger.Error(fmt.Sprintf("WebSocket 读取失败: %s", err.Error()))
 			break
 		}
-		// 新增命令处理
+
+		if len(msg) > 0 && msg[0] == '{' {
+			var resize struct {
+				Type string `json:"type"`
+				Cols int    `json:"cols"`
+				Rows int    `json:"rows"`
+			}
+			if json.Unmarshal(msg, &resize) == nil && resize.Type == "resize" {
+				if err := session.WindowChange(resize.Rows, resize.Cols); err != nil {
+					if err := wt.wsConn.WriteMessage(websocket.BinaryMessage, []byte(err.Error())); err != nil {
+						logger.Error(fmt.Sprintf("WebSocket 响应失败: %s", err.Error()))
+					}
+				}
+				continue
+			}
+		}
+
 		wt.processInput(msg)
+
 		if _, err := stdin.Write(msg); err != nil {
-			logger.Error(fmt.Sprintf("WebSocket 输入并写入SSH失败, errMsg: %s", err.Error()))
-			return err
+			logger.Error(fmt.Sprintf("WebSocket 输入写入 SSH 失败: %s", err.Error()))
+			break
 		}
 	}
+}
 
-	return
+// 启动输出处理协程
+func (wt *WebTerminal) handleOutput(stdout io.Reader) {
+	s := &outputSync{
+		dataChan: make(chan []byte, 100),
+		quitChan: make(chan struct{}),
+	}
+
+	// 读取协程
+	go func() {
+		reader := bufio.NewReader(stdout)
+		for {
+			buf := make([]byte, 4096)
+			n, err := reader.Read(buf)
+			if err != nil {
+				close(s.dataChan)
+				return
+			}
+
+			// 深拷贝数据并发送到管道
+			data := make([]byte, n)
+			copy(data, buf[:n])
+			s.dataChan <- data
+		}
+	}()
+
+	// 发送协程
+	go func() {
+		defer close(s.quitChan)
+		for data := range s.dataChan {
+			// 同步发送保证顺序
+			wt.wsMutex.Lock()
+			if err := wt.wsConn.WriteMessage(websocket.BinaryMessage, data); err != nil {
+				wt.wsMutex.Unlock()
+				return
+			}
+			wt.wsMutex.Unlock()
+
+			// 调试输出（显示实际字节）
+			fmt.Printf("发送数据块 [%d 字节]: %s\n", len(data), string(data))
+		}
+	}()
+
+	// 等待退出信号
+	<-s.quitChan
 }
 
 func (wt *WebTerminal) saveCmd(cmd string) error {
@@ -169,8 +238,6 @@ func (wt *WebTerminal) processInput(data []byte) {
 				if fullCmd == "" {
 					return
 				}
-				//duration := time.Since(wt.cmdCache.StartTime)
-				//log.Printf("[CMD] %s | Duration: %v", fullCmd, duration)
 				go func() {
 					if err := wt.saveCmd(fullCmd); err != nil {
 						logger.Error(fmt.Sprintf("保存cmd失败, cmd: %s, ip: %s, errMsg: %s", fullCmd, wt.ip, err.Error()))
@@ -190,10 +257,6 @@ func (wt *WebTerminal) processInput(data []byte) {
 			}
 		}
 	}
-}
-
-func (wt *WebTerminal) isDangerCmd() {
-
 }
 
 func (wt *WebTerminal) sshConfig() (*ssh.ClientConfig, error) {

@@ -7,18 +7,21 @@ import (
 )
 
 type ClusterModel struct {
-	ID         uint          `json:"id" gorm:"primaryKey"`
-	ClusterCid string        `json:"cluster_cid" gorm:"default:n21q22l9bxkf0hhi7d971hh9o;comment:docker info可以查询"`
-	Name       string        `json:"name" gorm:"unique"`
-	Region     string        `json:"region" gorm:"default:cn-sz"`
-	Date       time.Time     `json:"date" gorm:"default:CURRENT_TIMESTAMP;nullable"`
-	Status     uint          `json:"status" gorm:"default:100;comment:100-集群异常,200-集群正常"`
-	Servers    []AssetsModel `json:"servers" gorm:"foreignKey:ClusterID"`
+	ID          uint          `json:"id" gorm:"primaryKey"`
+	ClusterCid  string        `json:"cluster_cid" gorm:"default:n21q22l9bxkf0hhi7d971hh9o;comment:docker info可以查询"`
+	Name        string        `json:"name" gorm:"unique"`
+	MasterIp    string        `json:"master_ip" gorm:"default:1.1.1.1"`
+	Region      string        `json:"region" gorm:"default:cn-sz"`
+	Token       string        `json:"token" gorm:"null"`
+	Date        time.Time     `json:"date" gorm:"default:CURRENT_TIMESTAMP;nullable"`
+	Status      uint          `json:"status" gorm:"default:100;comment:100-集群异常,200-集群正常"`
+	Servers     []AssetsModel `json:"servers" gorm:"foreignKey:ClusterID"`
+	ClusterType string        `json:"cluster_type" gorm:"default:1"`
 }
 
 func (cm *ClusterModel) List(page int, c ClusterModel) (data *service.Paginate, err error) {
 	var cs []ClusterModel
-	sql := dao.DB.Model(cm).Where(c)
+	sql := dao.DB.Model(cm).Where(c).Preload("Servers")
 	pg := service.NewPaginate()
 	data, err = pg.GetPageData(page, sql)
 	if err != nil {

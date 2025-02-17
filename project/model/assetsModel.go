@@ -58,6 +58,20 @@ func (o *AssetsModel) GetTerminalIp(id uint) (ip string, err error) {
 	return
 }
 
+func (o *AssetsModel) GetAllServersIp() ([]string, error) {
+	var ams []AssetsModel
+	var ip = make([]string, 0)
+	if err := dao.DB.Find(&ams).Error; err != nil {
+		return ip, err
+	}
+
+	for _, v := range ams {
+		ip = append(ip, v.Ip)
+	}
+
+	return ip, nil
+}
+
 func (o *AssetsModel) GetServer(ip string) (am AssetsModel, err error) {
 	if err = dao.DB.Where("ip = ?", ip).Find(&am).Error; err != nil {
 		return

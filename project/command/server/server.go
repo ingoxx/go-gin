@@ -2,12 +2,14 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 	pb "github.com/Lxb921006/Gin-bms/project/command/command"
 	"github.com/Lxb921006/Gin-bms/project/command/server/redis"
 	"github.com/Lxb921006/Gin-bms/project/command/server/script"
+	"github.com/Lxb921006/Gin-bms/project/tools/dockerSwarmApi"
 	"google.golang.org/grpc"
 	"io"
 	"log"
@@ -25,6 +27,7 @@ type server struct {
 	pb.UnimplementedStreamUpdateProgramServiceServer
 	pb.UnimplementedFileTransferServiceServer
 	pb.UnimplementedStreamCheckSystemLogServiceServer
+	pb.UnimplementedClusterOperateServiceServer
 }
 
 type runScriptData struct {
@@ -240,6 +243,61 @@ func (s *server) CheckSystemLog(req *pb.StreamSystemLogRequest, stream pb.Stream
 	return
 }
 
+func (s *server) ClusterInit(req *pb.StreamClusterOperateReq, stream pb.ClusterOperateService_ClusterInitServer) (err error) {
+	log.Println("received ClusterInit")
+
+	var ctx = context.Background()
+	cid, token, err := dockerSwarmApi.NewDockerSwarmOp(req.GetMasterIp(), "", "", ctx).CreateSwarm()
+	if err != nil {
+		if err = stream.Send(&pb.StreamClusterOperateResp{Message: fmt.Sprintf("fail to run DockerUpdate, errMsg: %s\n", err.Error())}); err != nil {
+			log.Printf("ClusterInit, fail to send data, errMsg: %s\n", err.Error())
+		}
+	}
+
+	if err = stream.Send(&pb.StreamClusterOperateResp{Message: "ok", Token: token, ClusterID: cid, Ip: req.GetMasterIp()}); err != nil {
+		log.Printf("ClusterInit, fail to send data,  errMsg: %s\n", err.Error())
+	}
+
+	return
+}
+
+func (s *server) ClusterAddNode(req *pb.StreamClusterOperateReq, stream pb.ClusterOperateService_ClusterAddNodeServer) (err error) {
+	log.Println("received ClusterAddNode")
+
+	var ctx = context.Background()
+	if err := dockerSwarmApi.NewDockerSwarmOp(req.GetMasterIp(), req.GetNodeIp(), req.GetToken(), ctx).JoinSwarm(); err != nil {
+		if err = stream.Send(&pb.StreamClusterOperateResp{Message: fmt.Sprintf("fail to run DockerUpdate, errMsg: %s\n", err.Error())}); err != nil {
+			log.Printf("ClusterAddNode, fail to send data, errMsg: %s\n", err.Error())
+		}
+		return err
+	}
+
+	if err = stream.Send(&pb.StreamClusterOperateResp{Message: "ok", Ip: req.GetNodeIp()}); err != nil {
+		log.Printf("ClusterAddNode, fail to send data,  errMsg: %s\n", err.Error())
+	}
+
+	return
+}
+
+func (s *server) ClusterLeaveSwarm(req *pb.StreamClusterOperateReq, stream pb.ClusterOperateService_ClusterLeaveSwarmServer) (err error) {
+	log.Println("received ClusterLeaveSwarm")
+
+	var ctx = context.Background()
+	if err := dockerSwarmApi.NewDockerSwarmOp("", "", "", ctx).LeaveSwarm(); err != nil {
+		if err = stream.Send(&pb.StreamClusterOperateResp{Message: fmt.Sprintf("fail to run DockerUpdate, errMsg: %s\n", err.Error())}); err != nil {
+			log.Printf("ClusterLeaveSwarm, fail to send data, errMsg: %s\n", err.Error())
+		}
+
+		return err
+	}
+
+	if err = stream.Send(&pb.StreamClusterOperateResp{Message: "ok"}); err != nil {
+		log.Printf("ClusterLeaveSwarm, fail to send data,  errMsg: %s\n", err.Error())
+	}
+
+	return
+}
+
 // SendFile 接收文件并返回文件md5
 func (s *server) SendFile(stream pb.FileTransferService_SendFileServer) (err error) {
 	if err = s.ProcessMsg(stream); err != nil {
@@ -365,6 +423,7 @@ func main() {
 	pb.RegisterStreamUpdateProgramServiceServer(s, &server{})
 	pb.RegisterFileTransferServiceServer(s, &server{})
 	pb.RegisterStreamCheckSystemLogServiceServer(s, &server{})
+	pb.RegisterClusterOperateServiceServer(s, &server{})
 
 	log.Printf("server listening at %v", lis.Addr())
 
