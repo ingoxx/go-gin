@@ -133,7 +133,7 @@ func LeaveClusterController(ctx *gin.Context) {
 }
 
 func DeleteClusterController(ctx *gin.Context) {
-	var dc DeleteSwarmJson
+	var dc GenericClusterJson
 	if err := dc.Delete(ctx); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
@@ -163,4 +163,21 @@ func UpdateClusterController(ctx *gin.Context) {
 		"message": fmt.Sprintf("集群: %s, 更新成功", uc.Name),
 		"code":    10000,
 	})
+}
+
+func HealthCheckController(ctx *gin.Context) {
+	var dc GenericClusterJson
+	if err := dc.StartHealthCheck(ctx); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10001,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("集群: %v, 监控启动成功", dc.deleteClusterName),
+		"code":    10000,
+	})
+	return
 }

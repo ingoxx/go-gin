@@ -139,13 +139,13 @@ func (ws *Ws) recordLog() {
 
 func (ws *Ws) RecordLog(data map[string]interface{}) error {
 	if ws.gCtx.Request.URL.Path == "/assets/run-linux-cmd" {
-		data["Url"] = fmt.Sprintf("%s, 批量ansible作业, 批量执行命令: %s, 操作服务器: %v", ws.gCtx.Request.URL.Path, ws.Cmd, ws.Ip)
-		data["Operator"] = ws.gCtx.RemoteIP()
-		data["Ip"] = ws.gCtx.Query("user")
+		data["Url"] = fmt.Sprintf("%s, 批量执行命令: %s, 操作服务器: %v", ws.gCtx.Request.URL.Path, ws.Cmd, ws.Ip)
+		data["Operator"] = ws.gCtx.Query("user")
+		data["Ip"] = ws.gCtx.RemoteIP()
 	}
 
 	if ws.gCtx.Request.URL.Path == "/assets/view-system-log" {
-		data["Url"] = fmt.Sprintf("%s, 系统日志查询, 查询日志: %s, 查询字段: %s, 查询日期: %s-%s, 操作服务器: %v", ws.gCtx.Request.URL.Path, ws.LogName, ws.Field, ws.Start, ws.End, ws.Ip)
+		data["Url"] = fmt.Sprintf("%s, 查询日志: %s, 查询字段: %s, 查询日期: %s-%s, 操作服务器: %v", ws.gCtx.Request.URL.Path, ws.LogName, ws.Field, ws.Start, ws.End, ws.Ip)
 		data["Operator"] = ws.gCtx.RemoteIP()
 		data["Ip"] = ws.gCtx.Query("user")
 	}

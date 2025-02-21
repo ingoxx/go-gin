@@ -31,6 +31,40 @@ func (cl *SwarmOperate) clearStatus() {
 	}
 }
 
+func (cl *SwarmOperate) StartHealthCheck() error {
+	conn, err := cl.initGrpc(cl.MasterIp)
+	if err != nil {
+		return err
+	}
+
+	defer conn.Close()
+
+	ds := pb.NewClusterOperateServiceClient(conn)
+	stream, err := ds.StartClusterMonitor(context.Background(), &pb.StreamClusterOperateReq{ClusterID: cl.ClusterCid})
+	if err != nil {
+		return err
+	}
+
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return err
+		}
+
+		cl.Code = resp.GetCode()
+	}
+
+	if cl.Code != 10000 {
+		return errors.New(cl.Message)
+	}
+
+	return nil
+}
+
 func (cl *SwarmOperate) CreateCluster() error {
 	conn, err := cl.initGrpc(cl.MasterIp)
 	if err != nil {

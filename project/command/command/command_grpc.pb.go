@@ -573,11 +573,12 @@ var StreamCheckSystemLogService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	ClusterOperateService_ClusterInit_FullMethodName        = "/command.ClusterOperateService/ClusterInit"
-	ClusterOperateService_ClusterJoinWork_FullMethodName    = "/command.ClusterOperateService/ClusterJoinWork"
-	ClusterOperateService_ClusterJoinMaster_FullMethodName  = "/command.ClusterOperateService/ClusterJoinMaster"
-	ClusterOperateService_ClusterLeaveSwarm_FullMethodName  = "/command.ClusterOperateService/ClusterLeaveSwarm"
-	ClusterOperateService_ClusterRemoveSwarm_FullMethodName = "/command.ClusterOperateService/ClusterRemoveSwarm"
+	ClusterOperateService_ClusterInit_FullMethodName         = "/command.ClusterOperateService/ClusterInit"
+	ClusterOperateService_ClusterJoinWork_FullMethodName     = "/command.ClusterOperateService/ClusterJoinWork"
+	ClusterOperateService_ClusterJoinMaster_FullMethodName   = "/command.ClusterOperateService/ClusterJoinMaster"
+	ClusterOperateService_ClusterLeaveSwarm_FullMethodName   = "/command.ClusterOperateService/ClusterLeaveSwarm"
+	ClusterOperateService_ClusterRemoveSwarm_FullMethodName  = "/command.ClusterOperateService/ClusterRemoveSwarm"
+	ClusterOperateService_StartClusterMonitor_FullMethodName = "/command.ClusterOperateService/StartClusterMonitor"
 )
 
 // ClusterOperateServiceClient is the client API for ClusterOperateService service.
@@ -589,6 +590,7 @@ type ClusterOperateServiceClient interface {
 	ClusterJoinMaster(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error)
 	ClusterLeaveSwarm(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error)
 	ClusterRemoveSwarm(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error)
+	StartClusterMonitor(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error)
 }
 
 type clusterOperateServiceClient struct {
@@ -694,6 +696,25 @@ func (c *clusterOperateServiceClient) ClusterRemoveSwarm(ctx context.Context, in
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ClusterOperateService_ClusterRemoveSwarmClient = grpc.ServerStreamingClient[StreamClusterOperateResp]
 
+func (c *clusterOperateServiceClient) StartClusterMonitor(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ClusterOperateService_ServiceDesc.Streams[5], ClusterOperateService_StartClusterMonitor_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamClusterOperateReq, StreamClusterOperateResp]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ClusterOperateService_StartClusterMonitorClient = grpc.ServerStreamingClient[StreamClusterOperateResp]
+
 // ClusterOperateServiceServer is the server API for ClusterOperateService service.
 // All implementations must embed UnimplementedClusterOperateServiceServer
 // for forward compatibility.
@@ -703,6 +724,7 @@ type ClusterOperateServiceServer interface {
 	ClusterJoinMaster(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error
 	ClusterLeaveSwarm(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error
 	ClusterRemoveSwarm(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error
+	StartClusterMonitor(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error
 	mustEmbedUnimplementedClusterOperateServiceServer()
 }
 
@@ -727,6 +749,9 @@ func (UnimplementedClusterOperateServiceServer) ClusterLeaveSwarm(*StreamCluster
 }
 func (UnimplementedClusterOperateServiceServer) ClusterRemoveSwarm(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error {
 	return status.Errorf(codes.Unimplemented, "method ClusterRemoveSwarm not implemented")
+}
+func (UnimplementedClusterOperateServiceServer) StartClusterMonitor(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error {
+	return status.Errorf(codes.Unimplemented, "method StartClusterMonitor not implemented")
 }
 func (UnimplementedClusterOperateServiceServer) mustEmbedUnimplementedClusterOperateServiceServer() {}
 func (UnimplementedClusterOperateServiceServer) testEmbeddedByValue()                               {}
@@ -804,6 +829,17 @@ func _ClusterOperateService_ClusterRemoveSwarm_Handler(srv interface{}, stream g
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ClusterOperateService_ClusterRemoveSwarmServer = grpc.ServerStreamingServer[StreamClusterOperateResp]
 
+func _ClusterOperateService_StartClusterMonitor_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamClusterOperateReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ClusterOperateServiceServer).StartClusterMonitor(m, &grpc.GenericServerStream[StreamClusterOperateReq, StreamClusterOperateResp]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ClusterOperateService_StartClusterMonitorServer = grpc.ServerStreamingServer[StreamClusterOperateResp]
+
 // ClusterOperateService_ServiceDesc is the grpc.ServiceDesc for ClusterOperateService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -835,6 +871,11 @@ var ClusterOperateService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "ClusterRemoveSwarm",
 			Handler:       _ClusterOperateService_ClusterRemoveSwarm_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "StartClusterMonitor",
+			Handler:       _ClusterOperateService_StartClusterMonitor_Handler,
 			ServerStreams: true,
 		},
 	},

@@ -3,9 +3,10 @@ package cluster
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/mitchellh/mapstructure"
 )
 
-func (rc *DeleteSwarmJson) Delete(ctx *gin.Context) error {
+func (rc *GenericClusterJson) Delete(ctx *gin.Context) error {
 	if err := ctx.ShouldBindJSON(rc); err != nil {
 		return err
 	}
@@ -42,6 +43,37 @@ func (rc *DeleteSwarmJson) Delete(ctx *gin.Context) error {
 			errs = append(errs, err)
 			continue
 		}
+	}
+
+	if len(errs) != 0 {
+		return fmt.Errorf("%v", errs)
+	}
+
+	return nil
+}
+
+func (rc *GenericClusterJson) StartHealthCheck(ctx *gin.Context) error {
+	if err := ctx.ShouldBindJSON(rc); err != nil {
+		return err
+	}
+
+	var errs = make([]error, 0)
+	for _, id := range rc.ID {
+		cluster, err := rc.gs.cm.GetCluster(id)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		if err := mapstructure.Decode(cluster, &rc.gs.sw); err != nil {
+			return fmt.Errorf("集群: [%s] 健康检测启动失败, errMsg: %v", cluster.Name, err.Error())
+		}
+
+		if err := rc.gs.sw.StartHealthCheck(); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
 	}
 
 	if len(errs) != 0 {

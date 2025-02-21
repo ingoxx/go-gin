@@ -15,5 +15,6 @@ func Router(r *gin.Engine) {
 		assets.POST("/join-work", cc.JoinWorkClusterController)
 		assets.POST("/join-master", cc.JoinMasterClusterController)
 		assets.POST("/leave-cluster", cc.LeaveClusterController)
+		assets.POST("/health-check", cc.HealthCheckController)
 	}
 }

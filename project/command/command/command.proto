@@ -49,6 +49,7 @@ service ClusterOperateService {
   rpc ClusterJoinMaster(StreamClusterOperateReq) returns (stream StreamClusterOperateResp) {} // 添加到集群
   rpc ClusterLeaveSwarm(StreamClusterOperateReq) returns (stream StreamClusterOperateResp) {} // 退出集群
   rpc ClusterRemoveSwarm(StreamClusterOperateReq) returns (stream StreamClusterOperateResp) {} // 删除集群
+  rpc StartClusterMonitor(StreamClusterOperateReq) returns (stream StreamClusterOperateResp) {} // 删除集群
 }
 
 message StreamClusterOperateReq {
@@ -56,6 +57,7 @@ message StreamClusterOperateReq {
  string wToken = 2;
  string mToken = 3;
  string nodeIp = 4;
+ string clusterID = 5;
 }
 
 message StreamClusterOperateResp {

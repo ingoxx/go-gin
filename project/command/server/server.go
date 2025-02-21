@@ -268,6 +268,20 @@ func (s *server) ClusterInit(req *pb.StreamClusterOperateReq, stream pb.ClusterO
 	return
 }
 
+// StartClusterMonitor 启动监控
+func (s *server) StartClusterMonitor(req *pb.StreamClusterOperateReq, stream pb.ClusterOperateService_StartClusterMonitorServer) (err error) {
+	log.Println("received StartClusterMonitor")
+
+	// 启动集群的健康监测脚本
+	go dockerSwarmStatusCheck.Check(req.ClusterID)
+	if err = stream.Send(&pb.StreamClusterOperateResp{Message: "ok", Code: 10000}); err != nil {
+		log.Printf("StartClusterMonitor, fail to send data,  errMsg: %s\n", err.Error())
+		return err
+	}
+
+	return
+}
+
 func (s *server) ClusterJoinWork(req *pb.StreamClusterOperateReq, stream pb.ClusterOperateService_ClusterJoinWorkServer) (err error) {
 	log.Println("received ClusterJoinWork")
 

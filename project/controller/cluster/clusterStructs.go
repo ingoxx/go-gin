@@ -61,23 +61,15 @@ type JoinJson struct {
 	ctx *gin.Context
 }
 
-type DeleteSwarmJson struct {
+type GenericClusterJson struct {
 	ID                []uint `form:"id" json:"id"  binding:"required"`
 	serversInfo       []ServerNodeInput
 	gs                GeneralClusterOpStruct
 	deleteClusterName []string
 }
 
-type GeneralClusterFieldStruct struct {
-	Name        string `form:"name" json:"name"`
-	Region      string `form:"region" json:"region"`
-	ClusterCid  string `form:"cluster_cid" json:"cluster_cid"`
-	ClusterType string `form:"cluster_type" json:"cluster_type"`
-}
-
 type CheckClusterQuery struct {
-	Page int `form:"page" validate:"min=1" binding:"required" json:"page"`
-	//GeneralClusterFieldStruct
+	Page        int    `form:"page" validate:"min=1" binding:"required" json:"page"`
 	Name        string `form:"name" json:"name"`
 	Region      string `form:"region" json:"region"`
 	ClusterCid  string `form:"cluster_cid" json:"cluster_cid"`
