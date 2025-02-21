@@ -15,7 +15,7 @@ type ClusterModel struct {
 	MasterToken string        `json:"-" gorm:"null;comment:master节点token"`
 	MasterIp    string        `json:"master_ip"  gorm:"default:1.1.1.1"`
 	Date        time.Time     `json:"date" gorm:"default:CURRENT_TIMESTAMP;nullable"`
-	Status      uint          `json:"status" gorm:"default:200;comment:100-集群异常,200-集群正常"`
+	Status      uint          `json:"status" gorm:"default:300;comment:100-集群异常,200-集群正常,300-正在初始化"`
 	Servers     []AssetsModel `json:"servers" gorm:"foreignKey:ClusterID"`
 	ClusterType string        `json:"cluster_type" gorm:"default:1"`
 }

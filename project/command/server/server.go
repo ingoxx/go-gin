@@ -249,7 +249,7 @@ func (s *server) ClusterInit(req *pb.StreamClusterOperateReq, stream pb.ClusterO
 
 	cid, wToken, mToken, err := dockerSwarmApi.NewDockerSwarmOp(req.GetMasterIp(), "", "", "", context.Background()).CreateSwarm()
 	if err != nil {
-		log.Println(fmt.Sprintf("fail to init swarm, errMsg: %s\n", err.Error()))
+		log.Printf("fail to init swarm, errMsg: %s\n", err.Error())
 		if err = stream.Send(&pb.StreamClusterOperateResp{Message: fmt.Sprintf("fail to init swarm, errMsg: %s\n", err.Error()), Code: 10001}); err != nil {
 			log.Printf("ClusterInit, fail to send data, errMsg: %s\n", err.Error())
 		}
@@ -259,6 +259,7 @@ func (s *server) ClusterInit(req *pb.StreamClusterOperateReq, stream pb.ClusterO
 
 	if err = stream.Send(&pb.StreamClusterOperateResp{Message: "ok", WToken: wToken, MToken: mToken, ClusterID: cid, Ip: req.GetMasterIp(), Code: 10000}); err != nil {
 		log.Printf("ClusterInit, fail to send data,  errMsg: %s\n", err.Error())
+		return err
 	}
 
 	// 启动集群的健康监测脚本
@@ -280,6 +281,7 @@ func (s *server) ClusterJoinWork(req *pb.StreamClusterOperateReq, stream pb.Clus
 
 	if err = stream.Send(&pb.StreamClusterOperateResp{Message: "ok", Ip: req.GetNodeIp(), Code: 10000}); err != nil {
 		log.Printf("ClusterJoinWork, fail to send data,  errMsg: %s\n", err.Error())
+		return err
 	}
 
 	return
@@ -298,6 +300,7 @@ func (s *server) ClusterJoinMaster(req *pb.StreamClusterOperateReq, stream pb.Cl
 
 	if err = stream.Send(&pb.StreamClusterOperateResp{Message: "ok", Ip: req.GetNodeIp(), Code: 10000}); err != nil {
 		log.Printf("ClusterJoinMaster, fail to send data,  errMsg: %s\n", err.Error())
+		return err
 	}
 
 	return
@@ -317,6 +320,7 @@ func (s *server) ClusterLeaveSwarm(req *pb.StreamClusterOperateReq, stream pb.Cl
 
 	if err = stream.Send(&pb.StreamClusterOperateResp{Message: "ok", Code: 10000}); err != nil {
 		log.Printf("ClusterLeaveSwarm, fail to send data,  errMsg: %s\n", err.Error())
+		return err
 	}
 
 	return
