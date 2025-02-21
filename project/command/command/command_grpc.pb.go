@@ -574,7 +574,8 @@ var StreamCheckSystemLogService_ServiceDesc = grpc.ServiceDesc{
 
 const (
 	ClusterOperateService_ClusterInit_FullMethodName        = "/command.ClusterOperateService/ClusterInit"
-	ClusterOperateService_ClusterAddNode_FullMethodName     = "/command.ClusterOperateService/ClusterAddNode"
+	ClusterOperateService_ClusterJoinWork_FullMethodName    = "/command.ClusterOperateService/ClusterJoinWork"
+	ClusterOperateService_ClusterJoinMaster_FullMethodName  = "/command.ClusterOperateService/ClusterJoinMaster"
 	ClusterOperateService_ClusterLeaveSwarm_FullMethodName  = "/command.ClusterOperateService/ClusterLeaveSwarm"
 	ClusterOperateService_ClusterRemoveSwarm_FullMethodName = "/command.ClusterOperateService/ClusterRemoveSwarm"
 )
@@ -584,7 +585,8 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ClusterOperateServiceClient interface {
 	ClusterInit(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error)
-	ClusterAddNode(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error)
+	ClusterJoinWork(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error)
+	ClusterJoinMaster(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error)
 	ClusterLeaveSwarm(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error)
 	ClusterRemoveSwarm(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error)
 }
@@ -616,9 +618,9 @@ func (c *clusterOperateServiceClient) ClusterInit(ctx context.Context, in *Strea
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ClusterOperateService_ClusterInitClient = grpc.ServerStreamingClient[StreamClusterOperateResp]
 
-func (c *clusterOperateServiceClient) ClusterAddNode(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error) {
+func (c *clusterOperateServiceClient) ClusterJoinWork(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &ClusterOperateService_ServiceDesc.Streams[1], ClusterOperateService_ClusterAddNode_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &ClusterOperateService_ServiceDesc.Streams[1], ClusterOperateService_ClusterJoinWork_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -633,11 +635,30 @@ func (c *clusterOperateServiceClient) ClusterAddNode(ctx context.Context, in *St
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type ClusterOperateService_ClusterAddNodeClient = grpc.ServerStreamingClient[StreamClusterOperateResp]
+type ClusterOperateService_ClusterJoinWorkClient = grpc.ServerStreamingClient[StreamClusterOperateResp]
+
+func (c *clusterOperateServiceClient) ClusterJoinMaster(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ClusterOperateService_ServiceDesc.Streams[2], ClusterOperateService_ClusterJoinMaster_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamClusterOperateReq, StreamClusterOperateResp]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ClusterOperateService_ClusterJoinMasterClient = grpc.ServerStreamingClient[StreamClusterOperateResp]
 
 func (c *clusterOperateServiceClient) ClusterLeaveSwarm(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &ClusterOperateService_ServiceDesc.Streams[2], ClusterOperateService_ClusterLeaveSwarm_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &ClusterOperateService_ServiceDesc.Streams[3], ClusterOperateService_ClusterLeaveSwarm_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -656,7 +677,7 @@ type ClusterOperateService_ClusterLeaveSwarmClient = grpc.ServerStreamingClient[
 
 func (c *clusterOperateServiceClient) ClusterRemoveSwarm(ctx context.Context, in *StreamClusterOperateReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamClusterOperateResp], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &ClusterOperateService_ServiceDesc.Streams[3], ClusterOperateService_ClusterRemoveSwarm_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &ClusterOperateService_ServiceDesc.Streams[4], ClusterOperateService_ClusterRemoveSwarm_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -678,7 +699,8 @@ type ClusterOperateService_ClusterRemoveSwarmClient = grpc.ServerStreamingClient
 // for forward compatibility.
 type ClusterOperateServiceServer interface {
 	ClusterInit(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error
-	ClusterAddNode(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error
+	ClusterJoinWork(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error
+	ClusterJoinMaster(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error
 	ClusterLeaveSwarm(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error
 	ClusterRemoveSwarm(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error
 	mustEmbedUnimplementedClusterOperateServiceServer()
@@ -694,8 +716,11 @@ type UnimplementedClusterOperateServiceServer struct{}
 func (UnimplementedClusterOperateServiceServer) ClusterInit(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error {
 	return status.Errorf(codes.Unimplemented, "method ClusterInit not implemented")
 }
-func (UnimplementedClusterOperateServiceServer) ClusterAddNode(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error {
-	return status.Errorf(codes.Unimplemented, "method ClusterAddNode not implemented")
+func (UnimplementedClusterOperateServiceServer) ClusterJoinWork(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error {
+	return status.Errorf(codes.Unimplemented, "method ClusterJoinWork not implemented")
+}
+func (UnimplementedClusterOperateServiceServer) ClusterJoinMaster(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error {
+	return status.Errorf(codes.Unimplemented, "method ClusterJoinMaster not implemented")
 }
 func (UnimplementedClusterOperateServiceServer) ClusterLeaveSwarm(*StreamClusterOperateReq, grpc.ServerStreamingServer[StreamClusterOperateResp]) error {
 	return status.Errorf(codes.Unimplemented, "method ClusterLeaveSwarm not implemented")
@@ -735,16 +760,27 @@ func _ClusterOperateService_ClusterInit_Handler(srv interface{}, stream grpc.Ser
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ClusterOperateService_ClusterInitServer = grpc.ServerStreamingServer[StreamClusterOperateResp]
 
-func _ClusterOperateService_ClusterAddNode_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _ClusterOperateService_ClusterJoinWork_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(StreamClusterOperateReq)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(ClusterOperateServiceServer).ClusterAddNode(m, &grpc.GenericServerStream[StreamClusterOperateReq, StreamClusterOperateResp]{ServerStream: stream})
+	return srv.(ClusterOperateServiceServer).ClusterJoinWork(m, &grpc.GenericServerStream[StreamClusterOperateReq, StreamClusterOperateResp]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type ClusterOperateService_ClusterAddNodeServer = grpc.ServerStreamingServer[StreamClusterOperateResp]
+type ClusterOperateService_ClusterJoinWorkServer = grpc.ServerStreamingServer[StreamClusterOperateResp]
+
+func _ClusterOperateService_ClusterJoinMaster_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamClusterOperateReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ClusterOperateServiceServer).ClusterJoinMaster(m, &grpc.GenericServerStream[StreamClusterOperateReq, StreamClusterOperateResp]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ClusterOperateService_ClusterJoinMasterServer = grpc.ServerStreamingServer[StreamClusterOperateResp]
 
 func _ClusterOperateService_ClusterLeaveSwarm_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(StreamClusterOperateReq)
@@ -782,8 +818,13 @@ var ClusterOperateService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "ClusterAddNode",
-			Handler:       _ClusterOperateService_ClusterAddNode_Handler,
+			StreamName:    "ClusterJoinWork",
+			Handler:       _ClusterOperateService_ClusterJoinWork_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ClusterJoinMaster",
+			Handler:       _ClusterOperateService_ClusterJoinMaster_Handler,
 			ServerStreams: true,
 		},
 		{

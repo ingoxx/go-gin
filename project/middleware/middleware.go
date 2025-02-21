@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"github.com/Lxb921006/Gin-bms/project/logger"
 	"net/http"
 
 	"github.com/Lxb921006/Gin-bms/project/dao"
@@ -38,6 +39,7 @@ func TokenVerify() gin.HandlerFunc {
 		if token == "" || user == "" {
 			ctx.JSON(http.StatusBadRequest, gin.H{
 				"message": "非法请求",
+				"code":    10001,
 			})
 			ctx.Abort()
 		} else {
@@ -46,6 +48,7 @@ func TokenVerify() gin.HandlerFunc {
 			} else {
 				ctx.JSON(http.StatusBadGateway, gin.H{
 					"message": err.Error(),
+					"code":    10002,
 				})
 				ctx.Abort()
 			}
@@ -74,6 +77,7 @@ func PermsVerify() gin.HandlerFunc {
 		if err != nil || len(p) == 0 {
 			ctx.JSON(http.StatusForbidden, gin.H{
 				"message": err.Error(),
+				"code":    10003,
 			})
 			ctx.Abort()
 			return
@@ -96,6 +100,7 @@ func PermsVerify() gin.HandlerFunc {
 		} else {
 			ctx.JSON(http.StatusForbidden, gin.H{
 				"message": "您没有权限操作!",
+				"code":    10004,
 			})
 			ctx.Abort()
 		}
@@ -107,6 +112,7 @@ func ReqFrequencyLimit() gin.HandlerFunc {
 		if err := dao.Rds.ReqFrequencyLimit(ctx.Request.Host); err != nil {
 			ctx.JSON(http.StatusForbidden, gin.H{
 				"message": err.Error(),
+				"code":    10005,
 			})
 			ctx.Abort()
 			return
@@ -124,11 +130,7 @@ func OperateRecord() gin.HandlerFunc {
 		}
 
 		if err := op.AddOperateLog(ctx); err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{
-				"message": err.Error(),
-			})
-
-			ctx.Abort()
+			logger.Error("中间件记录操作日志失败, errMsg: %s", err.Error())
 		}
 	}
 }

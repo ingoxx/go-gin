@@ -6,6 +6,7 @@ import (
 	"github.com/Lxb921006/Gin-bms/project/api"
 	"github.com/Lxb921006/Gin-bms/project/command/client"
 	"github.com/Lxb921006/Gin-bms/project/logger"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -25,18 +26,23 @@ type Ws struct {
 	End         string   `json:"end"`
 	Field       string   `json:"field"`
 	wg          *sync.WaitGroup
+	gCtx        *gin.Context
 	limit       chan struct{}
 	output      chan map[string][]string
+	record      api.RecordWebsocketLog
 }
 
-func NewWs(conn *websocket.Conn, mc api.ModelCurd) *Ws {
+func NewWs(conn *websocket.Conn, mc api.ModelCurd, gCtx *gin.Context, record api.RecordWebsocketLog) *Ws {
 	return &Ws{
 		Conn:   conn,
 		mc:     mc,
 		wg:     new(sync.WaitGroup),
+		gCtx:   gCtx,
 		output: make(chan map[string][]string),
 		limit:  make(chan struct{}, 20),
+		record: record,
 	}
+
 }
 
 func (ws *Ws) Error(err error) {
@@ -59,9 +65,12 @@ func (ws *Ws) Run() (err error) {
 		return
 	}
 
+	// 解析websocket数据
 	if err = ParseJsonToStruct(message, ws); err != nil {
 		return
 	}
+
+	go ws.recordLog()
 
 	if ws.ProcessName == "runLinuxCmd" {
 		if err := ws.AcpLinuxCmd(); err != nil {
@@ -119,6 +128,33 @@ func (ws *Ws) AcpLinuxCmd() (err error) {
 	}
 
 	return
+}
+
+func (ws *Ws) recordLog() {
+	var data = make(map[string]interface{})
+	if err := ws.RecordLog(data); err != nil {
+		logger.Error(fmt.Sprintf("操作记录失败, errMsg: %s", err.Error()))
+	}
+}
+
+func (ws *Ws) RecordLog(data map[string]interface{}) error {
+	if ws.gCtx.Request.URL.Path == "/assets/run-linux-cmd" {
+		data["Url"] = fmt.Sprintf("%s, 批量ansible作业, 批量执行命令: %s, 操作服务器: %v", ws.gCtx.Request.URL.Path, ws.Cmd, ws.Ip)
+		data["Operator"] = ws.gCtx.RemoteIP()
+		data["Ip"] = ws.gCtx.Query("user")
+	}
+
+	if ws.gCtx.Request.URL.Path == "/assets/view-system-log" {
+		data["Url"] = fmt.Sprintf("%s, 系统日志查询, 查询日志: %s, 查询字段: %s, 查询日期: %s-%s, 操作服务器: %v", ws.gCtx.Request.URL.Path, ws.LogName, ws.Field, ws.Start, ws.End, ws.Ip)
+		data["Operator"] = ws.gCtx.RemoteIP()
+		data["Ip"] = ws.gCtx.Query("user")
+	}
+
+	if err := ws.record.RecordLog(data); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (ws *Ws) AcpProgramCmd() (err error) {

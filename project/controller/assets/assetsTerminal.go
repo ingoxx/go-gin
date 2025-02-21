@@ -8,6 +8,7 @@ import (
 	"github.com/Lxb921006/Gin-bms/project/logger"
 	"github.com/Lxb921006/Gin-bms/project/model"
 	"github.com/Lxb921006/Gin-bms/project/utils/encryption"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/ssh"
 	"io"
@@ -28,20 +29,17 @@ type outputSync struct {
 
 type WebTerminal struct {
 	wsConn   *websocket.Conn
-	ip       string
-	remoteIp string
-	user     string
 	am       model.AssetsModel
+	ip       string
 	cmdCache *CommandCapture
 	wsMutex  sync.Mutex
+	ctx      *gin.Context
 }
 
-func NewWebTerminal(wc *websocket.Conn, user, remoteIp, ip string) *WebTerminal {
+func NewWebTerminal(wc *websocket.Conn, ctx *gin.Context) *WebTerminal {
 	return &WebTerminal{
-		wsConn:   wc,
-		ip:       ip,
-		remoteIp: remoteIp,
-		user:     user,
+		wsConn: wc,
+		ctx:    ctx,
 		cmdCache: &CommandCapture{
 			StartTime: time.Now(),
 		},
@@ -49,6 +47,7 @@ func NewWebTerminal(wc *websocket.Conn, user, remoteIp, ip string) *WebTerminal 
 }
 
 func (wt *WebTerminal) Ssh() (err error) {
+	wt.ip = wt.ctx.Query("ip")
 	wt.am, err = wt.am.GetServer(wt.ip)
 	if err != nil {
 		return err
@@ -165,14 +164,12 @@ func (wt *WebTerminal) handleInput(stdin io.Writer, session *ssh.Session) {
 	}
 }
 
-// 启动输出处理协程
 func (wt *WebTerminal) handleOutput(stdout io.Reader) {
 	s := &outputSync{
 		dataChan: make(chan []byte, 100),
 		quitChan: make(chan struct{}),
 	}
 
-	// 读取协程
 	go func() {
 		reader := bufio.NewReader(stdout)
 		for {
@@ -190,24 +187,18 @@ func (wt *WebTerminal) handleOutput(stdout io.Reader) {
 		}
 	}()
 
-	// 发送协程
 	go func() {
 		defer close(s.quitChan)
 		for data := range s.dataChan {
-			// 同步发送保证顺序
 			wt.wsMutex.Lock()
 			if err := wt.wsConn.WriteMessage(websocket.BinaryMessage, data); err != nil {
 				wt.wsMutex.Unlock()
 				return
 			}
 			wt.wsMutex.Unlock()
-
-			// 调试输出（显示实际字节）
-			fmt.Printf("发送数据块 [%d 字节]: %s\n", len(data), string(data))
 		}
 	}()
 
-	// 等待退出信号
 	<-s.quitChan
 }
 
@@ -215,9 +206,9 @@ func (wt *WebTerminal) saveCmd(cmd string) error {
 	var addLog model.OperateLogModel
 	var record = make(map[string]string)
 
-	record["user"] = wt.user
-	record["url"] = fmt.Sprintf("终端命令操作审计, server ip: %s, run cmd: %s", wt.ip, cmd)
-	record["ip"] = wt.remoteIp
+	record["user"] = wt.ctx.Query("user")
+	record["url"] = fmt.Sprintf("%s, 终端命令操作审计, server ip: %s, run cmd: %s", wt.ctx.Request.URL.Path, wt.ip, cmd)
+	record["ip"] = wt.ctx.RemoteIP()
 
 	if err := addLog.AloneAddOperateLog(record); err != nil {
 		return err

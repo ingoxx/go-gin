@@ -34,10 +34,10 @@ func RunProgramController(ctx *gin.Context) {
 
 	defer conn.Close()
 
-	var aprm model.AssetsProgramUpdateRecordModel
-	if err = service.NewWs(conn, &aprm).Run(); err != nil {
+	if err = service.NewWs(conn, &am, ctx, &om).Run(); err != nil {
 		return
 	}
+
 }
 
 // SyncFileController 分发文件
@@ -70,25 +70,6 @@ func RunProgramApiController(ctx *gin.Context) {
 		"code":    10000,
 	})
 
-}
-
-// GetMissionStatusController 废弃
-func GetMissionStatusController(ctx *gin.Context) {
-	var ps GetMissionStatusForm
-	data, err := ps.GetProgress(ctx)
-	if err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": err.Error(),
-			"code":    10001,
-		})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"data":    data,
-		"message": "ok",
-		"code":    10000,
-	})
 }
 
 func CreateUpdateProgramRecordController(ctx *gin.Context) {
@@ -387,10 +368,8 @@ func WebTerminalController(ctx *gin.Context) {
 	defer conn.Close()
 
 	serverIp := ctx.Query("ip")
-	remoteIp := ctx.RemoteIP()
-	operator := ctx.Query("user")
-	if err := NewWebTerminal(conn, operator, remoteIp, serverIp).Ssh(); err != nil {
-		logger.Error(fmt.Sprintf("failed to ssh %s", serverIp))
+	if err := NewWebTerminal(conn, ctx).Ssh(); err != nil {
+		logger.Error(fmt.Sprintf("failed to ssh %s, errMsg: %s", serverIp, err.Error()))
 	}
 
 }

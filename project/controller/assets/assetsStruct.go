@@ -1,5 +1,10 @@
 package assets
 
+import "github.com/Lxb921006/Gin-bms/project/model"
+
+var am model.AssetsProgramUpdateRecordModel
+var om model.OperateLogModel
+
 type ProgramAddForm struct {
 	CnName string `json:"cnname" form:"cnname"  binding:"required"`
 	EnName string `json:"enname" form:"enname"  binding:"required"`

@@ -13,7 +13,7 @@ func Router(r *gin.Engine) {
 		assets.GET("/view-system-log", ac.RunProgramController)
 		assets.GET("/ws", ac.RunProgramController)
 		assets.GET("/file/ws", ac.SyncFileController)
-		assets.GET("/program/status", ac.GetMissionStatusController)
+		//assets.GET("/program/status", ac.GetMissionStatusController)
 		assets.GET("/program/update/list", ac.ProgramUpdateListController)
 		assets.GET("/list", ac.ListController)
 		assets.POST("/program/update/create", ac.CreateUpdateProgramRecordController)

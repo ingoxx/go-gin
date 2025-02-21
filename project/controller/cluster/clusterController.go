@@ -8,6 +8,8 @@ import (
 	"net/http"
 )
 
+var cm model.ClusterModel
+
 func CheckClusterListController(ctx *gin.Context) {
 	var cm model.ClusterModel
 	var am model.AssetsModel
@@ -59,62 +61,106 @@ func CheckClusterListController(ctx *gin.Context) {
 	return
 }
 
-func AddClusterController(ctx *gin.Context) {
-	var add AddClusterForm
-	var cm model.ClusterModel
-	var sw SwarmOperate
-	if err := ctx.ShouldBindJSON(&add); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
+func CreateClusterController(ctx *gin.Context) {
+	var ccs CreateClusterStruct
+	if err := ccs.Create(ctx); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
 			"code":    10001,
 		})
 		return
 	}
 
-	if err := mapstructure.Decode(add, &sw); err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": fmt.Sprintf("集群: [%s] 创建失败, errMsg: %v", add.Name, err.Error()),
-			"code":    10002,
-		})
-		return
-	}
-
-	_, err := sw.CreateCluster()
-	if err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": fmt.Sprintf("集群: [%s] 创建失败, errMsg: %v", add.Name, err.Error()),
-			"code":    10003,
-		})
-		return
-	}
-
-	if err := mapstructure.Decode(&sw, &cm); err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": fmt.Sprintf("集群: [%s] 创建失败, errMsg: %v", add.Name, err.Error()),
-			"code":    10004,
-		})
-		return
-	}
-
-	if err := cm.Add(cm); err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": fmt.Sprintf("集群: [%s] 创建失败, errMsg: %v", add.Name, err.Error()),
-			"code":    10005,
-		})
-		return
-	}
-
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("集群: [%s], 添加成功", add.Name),
+		"message": fmt.Sprintf("集群: [%s], 添加成功", ccs.CC.Name),
 		"code":    10000,
 	})
 	return
 }
 
-func JoinClusterController(ctx *gin.Context) {
+func JoinMasterClusterController(ctx *gin.Context) {
+	var jj JoinJson
+	if err := jj.JoinMaster(ctx); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10001,
+		})
 
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("加入【%s】集群成功", jj.sw.Name),
+		"code":    10000,
+	})
+
+	return
+}
+
+func JoinWorkClusterController(ctx *gin.Context) {
+	var jj JoinJson
+	if err := jj.JoinWork(ctx); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10001,
+		})
+
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("加入【%s】集群成功", jj.sw.Name),
+		"code":    10000,
+	})
+
+	return
 }
 
 func LeaveClusterController(ctx *gin.Context) {
+	var js JoinJson
+	if err := js.LeaveSwarm(ctx); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10001,
+		})
+	}
 
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "移除成功",
+		"code":    10000,
+	})
+	return
+}
+
+func DeleteClusterController(ctx *gin.Context) {
+	var dc DeleteSwarmJson
+	if err := dc.Delete(ctx); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10001,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("集群: %v, 删除成功", dc.deleteClusterName),
+		"code":    10000,
+	})
+	return
+}
+
+func UpdateClusterController(ctx *gin.Context) {
+	var uc UpdateClusterForm
+	if err := uc.Update(ctx); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10001,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("集群: %s, 更新成功", uc.Name),
+		"code":    10000,
+	})
 }

@@ -17,13 +17,23 @@ type OperateLogModel struct {
 	Url      string    `json:"url" gorm:"type:text;not null"`
 	Operator string    `json:"operator" gorm:"not null"`
 	Ip       string    `json:"ip" gorm:"not null"`
-	Start    time.Time `json:"start" gorm:"-"`
-	End      time.Time `json:"end" gorm:"-"`
+	Start    time.Time `json:"start" gorm:"default:CURRENT_TIMESTAMP"`
+	End      time.Time `json:"end" gorm:"default:CURRENT_TIMESTAMP"`
 }
 
 func (o *OperateLogModel) OperateLogList(page int, op OperateLogModel) (data *service.Paginate, err error) {
 	var os []OperateLogModel
-	sql := dao.DB.Model(o).Where(op)
+	sql := dao.DB.Model(o)
+	if op.Operator != "" {
+		sql = sql.Where("operator LIKE ?", "%"+op.Operator+"%")
+	}
+	if op.Url != "" {
+		sql = sql.Where("url LIKE ?", "%"+op.Url+"%")
+	}
+	if op.Ip != "" {
+		sql = sql.Where("ip LIKE ?", "%"+op.Ip+"%")
+	}
+
 	pg := service.NewPaginate()
 	data, err = pg.GetPageData(page, sql)
 	if err != nil {
@@ -41,7 +51,20 @@ func (o *OperateLogModel) OperateLogList(page int, op OperateLogModel) (data *se
 
 func (o *OperateLogModel) OperateLogListByDate(page int, op OperateLogModel) (data *service.Paginate, err error) {
 	var os []OperateLogModel
-	sql := dao.DB.Model(o).Or(op).Where("created_at between ? and ?", op.Start, op.End)
+	sql := dao.DB.Model(o)
+
+	if op.Operator != "" {
+		sql = sql.Or("operator LIKE ?", "%"+op.Operator+"%")
+	}
+	if op.Url != "" {
+		sql = sql.Or("url LIKE ?", "%"+op.Url+"%")
+	}
+	if op.Ip != "" {
+		sql = sql.Or("ip LIKE ?", "%"+op.Ip+"%")
+	}
+
+	sql.Where("created_at between ? and ?", op.Start, op.End)
+
 	pg := service.NewPaginate()
 	data, err = pg.GetPageData(page, sql)
 	if err != nil {
@@ -83,7 +106,7 @@ func (o *OperateLogModel) AddOperateLog(ctx *gin.Context) (err error) {
 	buf.Reset()
 
 	if ctx.Request.URL.Path == "/assets/terminal" {
-		o.Url = ctx.Request.URL.Path + ", connect server: " + ctx.Query("ip")
+		o.Url = ctx.Request.URL.Path + ", 终端连接: " + ctx.Query("ip")
 	} else {
 		o.Url = ctx.Request.URL.Path + ", " + string(resp)
 	}
@@ -96,7 +119,6 @@ func (o *OperateLogModel) AddOperateLog(ctx *gin.Context) (err error) {
 	}
 
 	if err := o.dataCount(ctx.Request.URL.Path); err != nil {
-
 		return err
 	}
 
@@ -336,4 +358,11 @@ func (o *OperateLogModel) findUserLoginNum() ([]map[string]interface{}, error) {
 
 func (o *OperateLogModel) serializeData() (err error) {
 	return
+}
+
+func (o *OperateLogModel) RecordLog(data map[string]interface{}) error {
+	if err := dao.DB.Model(o).Create(data).Error; err != nil {
+		return err
+	}
+	return nil
 }

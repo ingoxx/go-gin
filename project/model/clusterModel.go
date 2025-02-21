@@ -10,11 +10,12 @@ type ClusterModel struct {
 	ID          uint          `json:"id" gorm:"primaryKey"`
 	ClusterCid  string        `json:"cluster_cid" gorm:"default:n21q22l9bxkf0hhi7d971hh9o;comment:docker info可以查询"`
 	Name        string        `json:"name" gorm:"unique"`
-	MasterIp    string        `json:"master_ip" gorm:"default:1.1.1.1"`
 	Region      string        `json:"region" gorm:"default:cn-sz"`
-	Token       string        `json:"token" gorm:"null"`
+	WorkToken   string        `json:"-" gorm:"null;comment:work节点的token"`
+	MasterToken string        `json:"-" gorm:"null;comment:master节点token"`
+	MasterIp    string        `json:"master_ip"  gorm:"default:1.1.1.1"`
 	Date        time.Time     `json:"date" gorm:"default:CURRENT_TIMESTAMP;nullable"`
-	Status      uint          `json:"status" gorm:"default:100;comment:100-集群异常,200-集群正常"`
+	Status      uint          `json:"status" gorm:"default:200;comment:100-集群异常,200-集群正常"`
 	Servers     []AssetsModel `json:"servers" gorm:"foreignKey:ClusterID"`
 	ClusterType string        `json:"cluster_type" gorm:"default:1"`
 }
@@ -45,7 +46,13 @@ func (cm *ClusterModel) GetAllClusterData() (data []*ClusterModel, err error) {
 	return
 }
 
-func (cm *ClusterModel) Update() {}
+func (cm *ClusterModel) Update(id uint, data ClusterModel) error {
+	if err := dao.DB.Model(cm).Where("id = ?", id).Updates(data).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (cm *ClusterModel) Delete(id uint) error {
 	if err := dao.DB.Where("id = ?", id).Delete(cm).Error; err != nil {
@@ -55,10 +62,19 @@ func (cm *ClusterModel) Delete(id uint) error {
 	return nil
 }
 
-func (cm *ClusterModel) Add(c ClusterModel) error {
-	if err := dao.DB.Create(&c).Error; err != nil {
+func (cm *ClusterModel) Create(c *ClusterModel) error {
+	if err := dao.DB.Create(c).Error; err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (cm *ClusterModel) GetCluster(id uint) (ClusterModel, error) {
+	var cms ClusterModel
+	if err := dao.DB.Model(cm).Where("id = ?", id).Preload("Servers").Find(&cms).Error; err != nil {
+		return cms, err
+	}
+
+	return cms, nil
 }

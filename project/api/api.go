@@ -11,3 +11,7 @@ type CeleryInterface interface {
 type ModelCurd interface {
 	Update(data map[string]interface{}) (err error)
 }
+
+type RecordWebsocketLog interface {
+	RecordLog(data map[string]interface{}) error
+}

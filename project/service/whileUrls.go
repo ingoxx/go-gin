@@ -49,6 +49,8 @@ func (WhileUrls) OperateWhileList(url string) bool {
 		"/log/get-run-linux-cmd-num",
 		"/assets/terminal/token",
 		"/assets/terminal/ws",
+		"/assets/run-linux-cmd",
+		"/assets/view-system-log",
 	}
 
 	for i := 0; i < len(wls); i++ {

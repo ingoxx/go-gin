@@ -80,6 +80,8 @@ func DeleteRoles(ctx *gin.Context) {
 		return
 	}
 
+	delRoles := r.GetRoleNames(dr.Rid)
+
 	if err := r.DeleteRole(dr.Rid); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
@@ -89,7 +91,7 @@ func DeleteRoles(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("%v删除成功", r.GetRoleNames(dr.Rid)),
+		"message": fmt.Sprintf("%v删除成功", delRoles),
 		"code":    10000,
 	})
 }
