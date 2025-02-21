@@ -39,7 +39,6 @@ func NewClusterHealthCheck(cid string, db *sql.DB, cli *client.Client) *ClusterH
 }
 
 func (chc *ClusterHealthCheck) checkClusterExists() bool {
-	log.Println("rec cid>>> ", chc.cid)
 	var exists bool
 	query := "SELECT EXISTS(SELECT 1 FROM cluster_models WHERE cluster_cid = ?)"
 	err := chc.db.QueryRow(query, chc.cid).Scan(&exists)
@@ -89,7 +88,7 @@ func (chc *ClusterHealthCheck) updateClusterStatus(ip string, status uint) {
 		ddwarning.SendWarning(msg)
 		log.Printf("failed to update cluster status, errMsg: %v\n", err)
 	} else {
-		fmt.Printf("cluster status updated to: %v\n", status)
+		log.Printf("cluster status updated to: %v\n", status)
 	}
 
 	return

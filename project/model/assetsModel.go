@@ -27,7 +27,7 @@ type AssetsModel struct {
 	ConnectType uint         `json:"connect_type" gorm:"default:1;comment:1-密码登陆, 2-秘钥登陆"`
 	ClusterID   *uint        `json:"cluster_id" gorm:"index;onDelete:SET NULL;default:NULL"`
 	Cluster     ClusterModel `json:"cluster" gorm:"constraint:OnDelete:SET NULL;"`
-	NodeStatus  uint         `json:"node_status" gorm:"default:300;comment:100-节点异常,200-节点正常,100-未知状态"`
+	NodeStatus  uint         `json:"node_status" gorm:"default:300;comment:100-节点异常,200-节点正常,300-未知状态"`
 }
 
 func (o *AssetsModel) List(page int, am AssetsModel) (data *service.Paginate, err error) {
