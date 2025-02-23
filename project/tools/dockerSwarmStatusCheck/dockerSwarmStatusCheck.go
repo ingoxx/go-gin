@@ -164,7 +164,7 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 	}
 }
 
-func Check() {
+func Check(currentServerIp string) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		msg := fmt.Sprintf("集群健康检测失败, failed to initialize Docker client, errMsg: %v\n", err)
@@ -193,11 +193,11 @@ func Check() {
 	for {
 		select {
 		case <-ticker.C:
-			currentServerIp, err := c.getCurrentServerIP()
-			if err != nil {
-				log.Printf("fail to get current server ip, errMsg: %s\n", err.Error())
-				return
-			}
+			//currentServerIp, err := c.getCurrentServerIP()
+			//if err != nil {
+			//	log.Printf("fail to get current server ip, errMsg: %s\n", err.Error())
+			//	return
+			//}
 
 			if !c.checkClusterExists(currentServerIp) {
 				continue

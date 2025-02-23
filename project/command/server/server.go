@@ -452,6 +452,24 @@ func (s *server) verify(req *pb.StreamRequest, stream pb.StreamUpdateProgramServ
 }
 
 func main() {
+	if len(os.Args) < 2 {
+		log.Println("必须提供当前服务器的外网IP地址")
+		os.Exit(1) // 参数不正确时退出程序，返回错误代码 1
+	}
+
+	ipAddress := os.Args[1]
+
+	if ipAddress == "" {
+		log.Println("IP地址不能为空")
+		os.Exit(1)
+	}
+
+	parsedIP := net.ParseIP(ipAddress)
+	if parsedIP == nil {
+		log.Println("错误: 无效的 IP 地址格式")
+		os.Exit(1)
+	}
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 12306))
 	if err != nil {
 		log.Fatalln(fmt.Sprintf("failed to listen 12306, errMsg: %v", err))
@@ -466,7 +484,7 @@ func main() {
 	pb.RegisterFileTransferServiceServer(s, &server{})
 	pb.RegisterStreamCheckSystemLogServiceServer(s, &server{})
 	pb.RegisterClusterOperateServiceServer(s, &server{})
-	go dockerSwarmStatusCheck.Check()
+	go dockerSwarmStatusCheck.Check(ipAddress)
 	log.Printf("server listening at %v", lis.Addr())
 
 	if err := s.Serve(lis); err != nil {
