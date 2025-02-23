@@ -191,7 +191,7 @@ func Check() {
 				return
 			}
 
-			if c.checkClusterExists(currentServerIp) {
+			if !c.checkClusterExists(currentServerIp) {
 				continue
 			}
 
