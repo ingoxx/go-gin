@@ -94,6 +94,7 @@ func (chc *ClusterHealthChecker) updatePrimaryManager(newPrimaryIP string, statu
 
 // **检测所有 Swarm 节点的健康状态**
 func (chc *ClusterHealthChecker) checkClusterHealth() {
+	log.Println("start health check")
 	nodes, err := chc.getSwarmNodes()
 	if err != nil {
 		log.Fatalf("❌ Failed to get swarm nodes: %v", err)
