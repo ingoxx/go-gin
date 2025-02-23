@@ -145,11 +145,17 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 			}
 		}
 
-		//workerStatus, err := chc.getWorkerStatus(ip)
-		//if err != nil {
-		//	return
-		//}
-		chc.updateServerStatus(ip, clusterStatusInfo[role], clusterStatusInfo[status])
+		leaveType, err := chc.getWorkerStatus(ip)
+		if err != nil {
+			return
+		}
+
+		if leaveType == 1 {
+			chc.updateServerStatus(ip, 3, 300)
+		} else {
+			chc.updateServerStatus(ip, clusterStatusInfo[role], clusterStatusInfo[status])
+		}
+
 	}
 
 	primaryIP, err := chc.getPrimaryManager()
