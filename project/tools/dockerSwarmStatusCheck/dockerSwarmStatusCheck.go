@@ -66,7 +66,7 @@ func (chc *ClusterHealthChecker) getWorkerStatus(ip string) (uint, error) {
 	err := chc.db.QueryRow(query, ip).Scan(&isLeave)
 	if err != nil {
 		log.Printf("failed to get worker %s leave type\n", ip)
-		return 0, err
+		return isLeave, err
 	}
 
 	return isLeave, nil
@@ -149,13 +149,13 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 		if err != nil {
 			return
 		}
+		log.Println("leave type >>> ", ip, leaveType)
 
 		if leaveType == 1 {
 			chc.updateServerStatus(ip, 3, 300)
 		} else {
 			chc.updateServerStatus(ip, clusterStatusInfo[role], clusterStatusInfo[status])
 		}
-
 	}
 
 	primaryIP, err := chc.getPrimaryManager()

@@ -279,10 +279,10 @@ func (cl *SwarmOperate) UpdateServers() error {
 			}
 		} else {
 			if err := dao.DB.Model(&model.AssetsModel{}).Where("ip = ?", v.Ip).Updates(map[string]interface{}{
-				"cluster_id": nil,
-				//"node_type":   3,
-				//"node_status": 300,
-				"leave_type": 1,
+				"cluster_id":  nil,
+				"node_type":   3,
+				"node_status": 300,
+				"leave_type":  1,
 			}).Error; err != nil {
 				return err
 			}
