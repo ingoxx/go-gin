@@ -145,6 +145,13 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 
 	fmt.Println("AADDD >>> ", primaryIP, primaryManagerIP)
 
+	// 检查集群是否可用
+	if !foundLeader {
+		log.Println("❌ No healthy manager found! Cluster may be unavailable.")
+		chc.updatePrimaryManager(primaryManagerIP, 100)
+		return
+	}
+
 	// 检测leader是否更新
 	var isLeaderChange bool
 	if primaryIP != primaryManagerIP {
