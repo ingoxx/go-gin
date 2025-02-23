@@ -35,6 +35,8 @@ func (chc *ClusterHealthChecker) checkClusterExists(managerIp string) bool {
 		return exists
 	}
 
+	log.Println("managerIp >>> ", managerIp, exists)
+
 	return exists
 }
 
