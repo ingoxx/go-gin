@@ -60,6 +60,18 @@ func (chc *ClusterHealthChecker) getPrimaryManagerStatus() (uint, error) {
 	return status, nil
 }
 
+func (chc *ClusterHealthChecker) getWorkerStatus(ip string) (uint, error) {
+	var isLeave uint
+	query := "SELECT is_leave FROM assets_models WHERE ip = ?"
+	err := chc.db.QueryRow(query, ip).Scan(&isLeave)
+	if err != nil {
+		log.Printf("failed to get worker %s status\n", ip)
+		return 0, err
+	}
+
+	return isLeave, nil
+}
+
 func (chc *ClusterHealthChecker) getClusterId(managerIp string) (string, error) {
 	var clusterID string
 	query := "SELECT cluster_cid FROM cluster_models WHERE master_ip = ?"
@@ -133,8 +145,14 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 			}
 		}
 
-		// **更新 servers 表（Worker 和 Manager 状态）**
-		chc.updateServerStatus(ip, clusterStatusInfo[role], clusterStatusInfo[status])
+		workerStatus, err := chc.getWorkerStatus(ip)
+		if err != nil {
+			return
+		}
+		if workerStatus != 1 {
+			// **更新 servers 表（Worker 和 Manager 状态）**
+			chc.updateServerStatus(ip, clusterStatusInfo[role], clusterStatusInfo[status])
+		}
 	}
 
 	primaryIP, err := chc.getPrimaryManager()
