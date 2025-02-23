@@ -10,8 +10,6 @@ import (
 	"github.com/docker/docker/client"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
-	"os/exec"
-	"strings"
 	"time"
 )
 
@@ -67,15 +65,6 @@ func (chc *ClusterHealthChecker) getClusterId(managerIp string) (string, error) 
 	return clusterID, nil
 }
 
-func (chc *ClusterHealthChecker) getCurrentServerIP() (string, error) {
-	cmd := exec.Command("dig", "+short", "myip.opendns.com", "@resolver1.opendns.com")
-	output, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(output)), nil
-}
-
 // 获取 Swarm 节点信息（Manager 和 Worker）
 func (chc *ClusterHealthChecker) getSwarmNodes() ([]swarm.Node, error) {
 	ctx := context.Background()
@@ -93,7 +82,6 @@ func (chc *ClusterHealthChecker) updateServerStatus(ip string, role, status uint
 	if err != nil {
 		log.Printf("❌ Failed to update server status for %s: %v\n", ip, err)
 	}
-	log.Printf("✅ Updated status for server %s (%v): %v\n", ip, role, status)
 }
 
 // 更新 `clusters` 表中的 Primary Manager
@@ -103,7 +91,6 @@ func (chc *ClusterHealthChecker) updatePrimaryManager(newPrimaryIP string, statu
 	if err != nil {
 		log.Printf("❌ Failed to update primary manager: %v\n", err)
 	}
-	log.Printf("✅ Updated primary manager to: %s\n", newPrimaryIP)
 }
 
 // **检测所有 Swarm 节点的健康状态**
@@ -111,7 +98,7 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 	log.Println("start health check")
 	nodes, err := chc.getSwarmNodes()
 	if err != nil {
-		log.Fatalf("❌ Failed to get swarm nodes: %v", err)
+		log.Printf("❌ Failed to get swarm nodes: %v\n", err)
 	}
 
 	var primaryManagerIP string
@@ -140,10 +127,9 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 
 	primaryIP, err := chc.getPrimaryManager()
 	if err != nil {
-		log.Fatalf("Failed to get primary manager: %v", err)
+		log.Printf("Failed to get primary manager: %v\n", err)
+		return
 	}
-
-	fmt.Println("AADDD >>> ", primaryIP, primaryManagerIP)
 
 	// 检查集群是否可用
 	if !foundLeader {
@@ -162,6 +148,8 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 		log.Printf("✅ Swarm elected new Leader: %s. Updating database...\n", primaryManagerIP)
 		chc.updatePrimaryManager(primaryManagerIP, 200)
 	}
+
+	log.Printf("cluster %s health ok\n", chc.cid)
 }
 
 func Check(currentServerIp string) {
@@ -193,12 +181,6 @@ func Check(currentServerIp string) {
 	for {
 		select {
 		case <-ticker.C:
-			//currentServerIp, err := c.getCurrentServerIP()
-			//if err != nil {
-			//	log.Printf("fail to get current server ip, errMsg: %s\n", err.Error())
-			//	return
-			//}
-
 			if !c.checkClusterExists(currentServerIp) {
 				continue
 			}
