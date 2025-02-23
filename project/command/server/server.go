@@ -262,8 +262,8 @@ func (s *server) ClusterInit(req *pb.StreamClusterOperateReq, stream pb.ClusterO
 		return err
 	}
 
-	// 启动集群的健康监测脚本
-	go dockerSwarmStatusCheck.Check(cid)
+	//// 启动集群的健康监测脚本
+	//go dockerSwarmStatusCheck.Check(cid)
 
 	return
 }
@@ -273,7 +273,7 @@ func (s *server) StartClusterMonitor(req *pb.StreamClusterOperateReq, stream pb.
 	log.Println("received StartClusterMonitor")
 
 	// 启动集群的健康监测脚本
-	go dockerSwarmStatusCheck.Check(req.ClusterID)
+	//go dockerSwarmStatusCheck.Check(req.ClusterID)
 	if err = stream.Send(&pb.StreamClusterOperateResp{Message: "ok", Code: 10000}); err != nil {
 		log.Printf("StartClusterMonitor, fail to send data,  errMsg: %s\n", err.Error())
 		return err
@@ -466,7 +466,7 @@ func main() {
 	pb.RegisterFileTransferServiceServer(s, &server{})
 	pb.RegisterStreamCheckSystemLogServiceServer(s, &server{})
 	pb.RegisterClusterOperateServiceServer(s, &server{})
-
+	go dockerSwarmStatusCheck.Check()
 	log.Printf("server listening at %v", lis.Addr())
 
 	if err := s.Serve(lis); err != nil {

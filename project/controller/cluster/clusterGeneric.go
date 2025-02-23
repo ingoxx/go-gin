@@ -20,7 +20,7 @@ func (rc *GenericClusterJson) Delete(ctx *gin.Context) error {
 			continue
 		}
 
-		rc.deleteClusterName = append(rc.deleteClusterName, cluster.Name)
+		rc.clusterName = append(rc.clusterName, cluster.Name)
 
 		for _, ip := range cluster.Servers {
 			si.Ip = ip.Ip
@@ -64,6 +64,8 @@ func (rc *GenericClusterJson) StartHealthCheck(ctx *gin.Context) error {
 			errs = append(errs, err)
 			continue
 		}
+
+		rc.clusterName = append(rc.clusterName, cluster.Name)
 
 		if err := mapstructure.Decode(cluster, &rc.gs.sw); err != nil {
 			return fmt.Errorf("集群: [%s] 健康检测启动失败, errMsg: %v", cluster.Name, err.Error())

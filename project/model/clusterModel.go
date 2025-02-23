@@ -18,6 +18,7 @@ type ClusterModel struct {
 	Status      uint          `json:"status" gorm:"default:300;comment:100-集群异常,200-集群正常,300-正在初始化"`
 	Servers     []AssetsModel `json:"servers" gorm:"foreignKey:ClusterID"`
 	ClusterType string        `json:"cluster_type" gorm:"default:1"`
+	HealthPort  int32         `json:"health_port" gorm:"default:12306;comment:管理节点的健康检测端口"`
 }
 
 func (cm *ClusterModel) List(page int, c ClusterModel) (data *service.Paginate, err error) {

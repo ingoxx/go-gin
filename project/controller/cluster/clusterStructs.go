@@ -44,6 +44,7 @@ type SwarmOperate struct {
 	ClusterCid  string `json:"cluster_cid"`
 	Message     string `json:"message"`
 	Code        int32  `json:"code"`
+	HealthPort  int32  `json:"health_port"`
 	ds          pb.ClusterOperateServiceClient
 	ServersInfo []ServerNodeInput `form:"servers" json:"servers"`
 }
@@ -62,10 +63,10 @@ type JoinJson struct {
 }
 
 type GenericClusterJson struct {
-	ID                []uint `form:"id" json:"id"  binding:"required"`
-	serversInfo       []ServerNodeInput
-	gs                GeneralClusterOpStruct
-	deleteClusterName []string
+	ID          []uint `form:"id" json:"id"  binding:"required"`
+	serversInfo []ServerNodeInput
+	gs          GeneralClusterOpStruct
+	clusterName []string
 }
 
 type CheckClusterQuery struct {
