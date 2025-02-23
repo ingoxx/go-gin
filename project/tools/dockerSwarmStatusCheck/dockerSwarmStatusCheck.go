@@ -32,6 +32,7 @@ func (chc *ClusterHealthChecker) checkClusterExists(managerIp string) bool {
 	query := "SELECT EXISTS(SELECT 1 FROM cluster_models WHERE master_ip = ?)"
 	err := chc.db.QueryRow(query, managerIp).Scan(&exists)
 	if err != nil {
+		log.Println("managerIp >>> ", managerIp, exists)
 		return exists
 	}
 
