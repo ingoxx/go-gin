@@ -146,11 +146,12 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 	fmt.Println("AADDD >>> ", primaryIP, primaryManagerIP)
 
 	// 检测leader是否更新
+	var isLeaderChange bool
 	if primaryIP != primaryManagerIP {
-		foundLeader = true
+		isLeaderChange = true
 	}
 
-	if foundLeader {
+	if isLeaderChange {
 		log.Printf("✅ Swarm elected new Leader: %s. Updating database...\n", primaryManagerIP)
 		chc.updatePrimaryManager(primaryManagerIP, 200)
 	}
