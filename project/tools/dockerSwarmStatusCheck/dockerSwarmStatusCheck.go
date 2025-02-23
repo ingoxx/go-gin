@@ -187,7 +187,7 @@ func Check() {
 		cli: cli,
 	}
 
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	for {
