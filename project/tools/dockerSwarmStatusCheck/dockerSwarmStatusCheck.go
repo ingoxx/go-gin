@@ -3,7 +3,6 @@ package dockerSwarmStatusCheck
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"github.com/Lxb921006/Gin-bms/project/config"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
@@ -50,6 +49,17 @@ func (chc *ClusterHealthChecker) getPrimaryManager() (string, error) {
 	return primaryManagerIP, nil
 }
 
+func (chc *ClusterHealthChecker) getPrimaryManagerStatus() (uint, error) {
+	var status uint
+	query := "SELECT status FROM cluster_models WHERE cluster_cid = ?"
+	err := chc.db.QueryRow(query, chc.cid).Scan(&status)
+	if err != nil {
+		return 0, err
+	}
+
+	return status, nil
+}
+
 func (chc *ClusterHealthChecker) getClusterId(managerIp string) (string, error) {
 	var clusterID string
 	query := "SELECT cluster_cid FROM cluster_models WHERE master_ip = ?"
@@ -85,12 +95,14 @@ func (chc *ClusterHealthChecker) updateServerStatus(ip string, role, status uint
 }
 
 // 更新 `clusters` 表中的 Primary Manager
-func (chc *ClusterHealthChecker) updatePrimaryManager(newPrimaryIP string, status uint) {
+func (chc *ClusterHealthChecker) updatePrimaryManager(newPrimaryIP string, status uint) error {
 	query := "UPDATE assets_models SET master_ip = ?, date = NOW(), status = ? WHERE cluster_cid = ?"
 	_, err := chc.db.Exec(query, newPrimaryIP, status, chc.cid)
 	if err != nil {
-		log.Printf("❌ Failed to update primary manager: %v\n", err)
+		return err
 	}
+
+	return nil
 }
 
 // **检测所有 Swarm 节点的健康状态**
@@ -133,8 +145,11 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 
 	// 检查集群是否可用
 	if !foundLeader {
-		log.Println("❌ No healthy manager found! Cluster may be unavailable.")
-		chc.updatePrimaryManager(primaryManagerIP, 100)
+		log.Printf("❌ No healthy manager found! Cluster %s may be unavailable.\n", chc.cid)
+		if err := chc.updatePrimaryManager(primaryManagerIP, 100); err != nil {
+			log.Printf("❌ an error occurred while updating the manager node status, cluster [%s], errMsg: %s\n", chc.cid, err.Error())
+			return
+		}
 		return
 	}
 
@@ -146,28 +161,39 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 
 	if isLeaderChange {
 		log.Printf("✅ Swarm elected new Leader: %s. Updating database...\n", primaryManagerIP)
-		chc.updatePrimaryManager(primaryManagerIP, 200)
+		if err := chc.updatePrimaryManager(primaryManagerIP, 200); err != nil {
+			log.Printf("❌ an error occurred while updating the manager node status, cluster [%s], errMsg: %s\n", chc.cid, err.Error())
+			return
+		}
+	}
+
+	status, err := chc.getPrimaryManagerStatus()
+	if err != nil {
+		log.Printf("❌ an error occurred while get the manager node status, cluster [%s], errMsg: %s\n", chc.cid, err.Error())
+		return
+	}
+
+	if status == 300 {
+		if err := chc.updatePrimaryManager(primaryManagerIP, 200); err != nil {
+			log.Printf("❌ an error occurred while updating the manager node status, cluster [%s], errMsg: %s\n", chc.cid, err.Error())
+			return
+		}
 	}
 
 	log.Printf("cluster %s health ok\n", chc.cid)
 }
 
 func Check(currentServerIp string) {
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	cli, err := initCli()
 	if err != nil {
-		msg := fmt.Sprintf("集群健康检测失败, failed to initialize Docker client, errMsg: %v\n", err)
-		//ddwarning.SendWarning(msg)
-		log.Fatalln(msg)
+		log.Printf("fail to init docker cli, errMsg: %s\n", err.Error())
+		return
 	}
-	defer cli.Close()
-
-	db, err := sql.Open("mysql", config.MyConAddre)
+	db, err := initDb()
 	if err != nil {
-		msg := fmt.Sprintf("集群健康检测失败, failed to connect to database, errMsg: %v\n", err)
-		//ddwarning.SendWarning(msg)
-		log.Fatalln(msg)
+		log.Printf("fail to init db, errMsg: %s\n", err.Error())
+		return
 	}
-	defer db.Close()
 
 	c := ClusterHealthChecker{
 		ctx: context.Background(),
@@ -195,4 +221,24 @@ func Check(currentServerIp string) {
 			}
 		}
 	}
+}
+
+func initDb() (*sql.DB, error) {
+	db, err := sql.Open("mysql", config.MyConAddre)
+	if err != nil {
+		return db, err
+	}
+	defer db.Close()
+
+	return db, nil
+}
+
+func initCli() (*client.Client, error) {
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return cli, err
+	}
+	defer cli.Close()
+
+	return cli, nil
 }

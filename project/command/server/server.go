@@ -262,9 +262,6 @@ func (s *server) ClusterInit(req *pb.StreamClusterOperateReq, stream pb.ClusterO
 		return err
 	}
 
-	//// 启动集群的健康监测脚本
-	//go dockerSwarmStatusCheck.Check(cid)
-
 	return
 }
 
