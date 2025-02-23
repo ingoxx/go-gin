@@ -30,6 +30,18 @@ type ClusterHealthChecker struct {
 	ctx context.Context // cluster_id
 }
 
+func (chc *ClusterHealthChecker) checkClusterExists(managerIp string) bool {
+	var exists bool
+	query := "SELECT EXISTS(SELECT 1 FROM cluster_models WHERE master_ip = ?)"
+	err := chc.db.QueryRow(query, managerIp).Scan(&exists)
+	if err != nil {
+		log.Printf("Failed to check cluster existence: %v", err)
+		return exists
+	}
+
+	return exists
+}
+
 func (chc *ClusterHealthChecker) getPrimaryManager() (string, error) {
 	var primaryManagerIP string
 	query := "SELECT master_ip FROM cluster_models WHERE cluster_cid = ?"
@@ -41,19 +53,22 @@ func (chc *ClusterHealthChecker) getPrimaryManager() (string, error) {
 	return primaryManagerIP, nil
 }
 
-func (chc *ClusterHealthChecker) getClusterId(managerIp string) error {
+func (chc *ClusterHealthChecker) getClusterId(managerIp string) (string, error) {
 	var clusterID string
 	query := "SELECT cluster_cid FROM cluster_models WHERE master_ip = ?"
 	err := chc.db.QueryRow(query, managerIp).Scan(&clusterID)
 	if err != nil {
-		return err
+		return clusterID, err
 	}
 
-	chc.cid = clusterID
-	return nil
+	if clusterID != "" {
+		chc.cid = clusterID
+	}
+
+	return clusterID, nil
 }
 
-func (chc *ClusterHealthChecker) getPublicIP() (string, error) {
+func (chc *ClusterHealthChecker) getCurrentServerIP() (string, error) {
 	cmd := exec.Command("dig", "+short", "myip.opendns.com", "@resolver1.opendns.com")
 	output, err := cmd.Output()
 	if err != nil {
@@ -134,13 +149,9 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 		foundLeader = true
 	}
 
-	// **主管理节点切换逻辑**
 	if foundLeader {
 		log.Printf("✅ Swarm elected new Leader: %s. Updating database...\n", primaryManagerIP)
 		chc.updatePrimaryManager(primaryManagerIP, 200)
-	} else {
-		log.Println("❌ No healthy manager found! Cluster may be unavailable.")
-		chc.updatePrimaryManager(primaryManagerIP, 100)
 	}
 }
 
@@ -173,15 +184,18 @@ func Check() {
 	for {
 		select {
 		case <-ticker.C:
-			currentServerIp, err := c.getPublicIP()
+			currentServerIp, err := c.getCurrentServerIP()
 			if err != nil {
+				log.Printf("fail to get current server ip, errMsg: %s\n", err.Error())
 				return
 			}
-			if err := c.getClusterId(currentServerIp); err != nil {
+
+			cid, err := c.getClusterId(currentServerIp)
+			if err != nil {
+				log.Printf("fail to get cluster ID, manager ip currentServerIp, errMsg: %s\n", err.Error())
 				return
 			}
-			manager, err := c.getPrimaryManager()
-			if manager == currentServerIp {
+			if cid != "" {
 				c.checkClusterHealth()
 			}
 		}
