@@ -32,11 +32,8 @@ func (chc *ClusterHealthChecker) checkClusterExists(managerIp string) bool {
 	query := "SELECT EXISTS(SELECT 1 FROM cluster_models WHERE master_ip = ?)"
 	err := chc.db.QueryRow(query, managerIp).Scan(&exists)
 	if err != nil {
-		log.Println("managerIp err >>> ", managerIp, exists, err)
 		return exists
 	}
-
-	log.Println("managerIp >>> ", managerIp, exists)
 
 	return exists
 }
@@ -192,11 +189,16 @@ func Check(currentServerIp string) {
 		log.Printf("fail to init docker cli, errMsg: %s\n", err.Error())
 		return
 	}
+
+	defer cli.Close()
+
 	db, err := initDb()
 	if err != nil {
 		log.Printf("fail to init db, errMsg: %s\n", err.Error())
 		return
 	}
+
+	defer db.Close()
 
 	c := ClusterHealthChecker{
 		ctx: context.Background(),
@@ -231,7 +233,6 @@ func initDb() (*sql.DB, error) {
 	if err != nil {
 		return db, err
 	}
-	defer db.Close()
 
 	return db, nil
 }
@@ -241,7 +242,6 @@ func initCli() (*client.Client, error) {
 	if err != nil {
 		return cli, err
 	}
-	defer cli.Close()
 
 	return cli, nil
 }
