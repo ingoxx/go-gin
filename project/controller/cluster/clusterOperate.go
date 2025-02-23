@@ -271,9 +271,9 @@ func (cl *SwarmOperate) UpdateServers() error {
 	for _, v := range cl.ServersInfo {
 		if cl.ID != 0 {
 			if err := dao.DB.Model(&model.AssetsModel{}).Where("ip = ?", v.Ip).Updates(map[string]interface{}{
-				"cluster_id":  cl.ID,
-				"node_type":   v.NodeType,
-				"node_status": 3,
+				"cluster_id": cl.ID,
+				//"node_type":   v.NodeType,
+				//"node_status": 3,
 			}).Error; err != nil {
 				return err
 			}
@@ -281,8 +281,7 @@ func (cl *SwarmOperate) UpdateServers() error {
 			if err := dao.DB.Model(&model.AssetsModel{}).Where("ip = ?", v.Ip).Updates(map[string]interface{}{
 				"cluster_id":  nil,
 				"node_type":   3,
-				"node_status": 3,
-				"is_leave":    1,
+				"node_status": 300,
 			}).Error; err != nil {
 				return err
 			}

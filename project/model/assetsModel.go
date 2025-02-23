@@ -28,7 +28,7 @@ type AssetsModel struct {
 	ClusterID   *uint        `json:"cluster_id" gorm:"index;onDelete:SET NULL;default:NULL"`
 	Cluster     ClusterModel `json:"cluster" gorm:"constraint:OnDelete:SET NULL;"`
 	NodeStatus  uint         `json:"node_status" gorm:"default:300;comment:100-节点异常,200-节点正常,300-未知状态"`
-	IsLeave     uint         `json:"is_leave" gorm:"default:3;comment:1-手动离开集群,2-被动离开集群,3-未知原因"`
+	LeaveType   uint         `json:"leave_type" gorm:"default:3;comment:1-手动离开集群,2-被动离开集群,3-未知原因"`
 }
 
 func (o *AssetsModel) List(page int, am AssetsModel) (data *service.Paginate, err error) {
