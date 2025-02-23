@@ -96,7 +96,7 @@ func (chc *ClusterHealthChecker) updateServerStatus(ip string, role, status uint
 
 // 更新 `clusters` 表中的 Primary Manager
 func (chc *ClusterHealthChecker) updatePrimaryManager(newPrimaryIP string, status uint) error {
-	query := "UPDATE assets_models SET master_ip = ?, date = NOW(), status = ? WHERE cluster_cid = ?"
+	query := "UPDATE cluster_models SET master_ip = ?, date = NOW(), status = ? WHERE cluster_cid = ?"
 	_, err := chc.db.Exec(query, newPrimaryIP, status, chc.cid)
 	if err != nil {
 		return err
