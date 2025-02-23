@@ -35,7 +35,6 @@ func (chc *ClusterHealthChecker) checkClusterExists(managerIp string) bool {
 	query := "SELECT EXISTS(SELECT 1 FROM cluster_models WHERE master_ip = ?)"
 	err := chc.db.QueryRow(query, managerIp).Scan(&exists)
 	if err != nil {
-		log.Printf("Failed to check cluster existence: %v", err)
 		return exists
 	}
 
@@ -94,12 +93,12 @@ func (chc *ClusterHealthChecker) updateServerStatus(ip string, role, status uint
 	if err != nil {
 		log.Printf("❌ Failed to update server status for %s: %v\n", ip, err)
 	}
-	log.Printf("✅ Updated status for server %s (%s): %s\n", ip, role, status)
+	log.Printf("✅ Updated status for server %s (%v): %v\n", ip, role, status)
 }
 
 // 更新 `clusters` 表中的 Primary Manager
 func (chc *ClusterHealthChecker) updatePrimaryManager(newPrimaryIP string, status uint) {
-	query := "UPDATE clusters SET master_ip = ?, date = NOW(), status = ? WHERE cluster_cid = ?"
+	query := "UPDATE assets_models SET master_ip = ?, date = NOW(), status = ? WHERE cluster_cid = ?"
 	_, err := chc.db.Exec(query, newPrimaryIP, status, chc.cid)
 	if err != nil {
 		log.Printf("❌ Failed to update primary manager: %v\n", err)
@@ -143,6 +142,8 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 	if err != nil {
 		log.Fatalf("Failed to get primary manager: %v", err)
 	}
+
+	fmt.Println("AADDD >>> ", primaryIP, primaryManagerIP)
 
 	// 检测leader是否更新
 	if primaryIP != primaryManagerIP {
@@ -188,6 +189,10 @@ func Check() {
 			if err != nil {
 				log.Printf("fail to get current server ip, errMsg: %s\n", err.Error())
 				return
+			}
+
+			if c.checkClusterExists(currentServerIp) {
+				continue
 			}
 
 			cid, err := c.getClusterId(currentServerIp)
