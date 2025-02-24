@@ -97,8 +97,8 @@ func (chc *ClusterHealthChecker) getSwarmNodes() ([]swarm.Node, error) {
 }
 
 func (chc *ClusterHealthChecker) updateServerStatus(ip string, role, status uint) {
-	query := "UPDATE assets_models SET node_status = ?, node_type = ?, start = ? WHERE ip = ?"
-	_, err := chc.db.Exec(query, status, role, time.Now(), ip)
+	query := "UPDATE assets_models SET node_status = ?, node_type = ? WHERE ip = ?"
+	_, err := chc.db.Exec(query, status, role, ip)
 	if err != nil {
 		log.Printf("❌ Failed to update server status for %s: %v\n", ip, err)
 	}
