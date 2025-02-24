@@ -21,6 +21,7 @@ type ListForm struct {
 	Status     uint   `json:"status" form:"status"`
 	NodeStatus uint   `json:"node_status" form:"node_status"`
 	NodeType   uint   `json:"node_type" form:"node_type"`
+	OSType     uint   `json:"os_type" form:"os_type"`
 }
 
 func (a *ListForm) List(ctx *gin.Context) (data *service.Paginate, err error) {
