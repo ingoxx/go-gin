@@ -14,10 +14,13 @@ import (
 // 服务器的增删改查
 
 type ListForm struct {
-	Ip        string `form:"ip,omitempty" json:"ip"`
-	Project   string `form:"project,omitempty" json:"project"`
-	ClusterID *uint  `form:"cluster_id,omitempty" json:"cluster_id"`
-	Page      int    `form:"page" json:"page" validate:"min=1" binding:"required"`
+	Ip         string `form:"ip,omitempty" json:"ip"`
+	Project    string `form:"project,omitempty" json:"project"`
+	ClusterID  *uint  `form:"cluster_id,omitempty" json:"cluster_id"`
+	Page       int    `form:"page" json:"page" validate:"min=1" binding:"required"`
+	Status     uint   `json:"status" form:"status"`
+	NodeStatus uint   `json:"node_status" form:"node_status"`
+	NodeType   uint   `json:"node_type" form:"node_type"`
 }
 
 func (a *ListForm) List(ctx *gin.Context) (data *service.Paginate, err error) {

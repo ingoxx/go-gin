@@ -13,7 +13,7 @@ type AssetsModel struct {
 	Ip          string       `json:"ip" gorm:"not null;unique"`
 	NodeType    uint         `json:"node_type" gorm:"default:3;comment:1-master节点, 2-work节点, 3-未知节点类型"`
 	Project     string       `json:"project" gorm:"not null"`
-	Status      uint         `json:"status" gorm:"default:200;comment:100-服务器异常,200-服务器正常"`
+	Status      uint         `json:"status" gorm:"default:200;comment:100-服务器异常,200-服务器正常,300-未知状态"`
 	Operator    string       `json:"operator" gorm:"default:lxb"`
 	RamUsage    uint         `json:"ram_usage" gorm:"default:1"`
 	DiskUsage   uint         `json:"disk_usage" gorm:"default:1"`

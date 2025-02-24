@@ -87,7 +87,6 @@ func (chc *ClusterHealthChecker) getClusterId(managerIp string) (string, error) 
 	return clusterID, nil
 }
 
-// 获取 Swarm 节点信息（Manager 和 Worker）
 func (chc *ClusterHealthChecker) getSwarmNodes() ([]swarm.Node, error) {
 	ctx := context.Background()
 	nodes, err := chc.cli.NodeList(ctx, types.NodeListOptions{})
@@ -97,19 +96,17 @@ func (chc *ClusterHealthChecker) getSwarmNodes() ([]swarm.Node, error) {
 	return nodes, nil
 }
 
-// 更新 `servers` 表中的节点状态
 func (chc *ClusterHealthChecker) updateServerStatus(ip string, role, status uint) {
-	query := "UPDATE assets_models SET node_status = ?, node_type = ?, start = NOW() WHERE ip = ?"
-	_, err := chc.db.Exec(query, status, role, ip)
+	query := "UPDATE assets_models SET node_status = ?, node_type = ?, start = ? WHERE ip = ?"
+	_, err := chc.db.Exec(query, status, role, time.Now(), ip)
 	if err != nil {
 		log.Printf("❌ Failed to update server status for %s: %v\n", ip, err)
 	}
 }
 
-// 更新 `clusters` 表中的 Primary Manager
 func (chc *ClusterHealthChecker) updatePrimaryManager(newPrimaryIP string, status uint) error {
-	query := "UPDATE cluster_models SET master_ip = ?, date = NOW(), status = ? WHERE cluster_cid = ?"
-	_, err := chc.db.Exec(query, newPrimaryIP, status, chc.cid)
+	query := "UPDATE cluster_models SET master_ip = ?, status = ?, date = ? WHERE cluster_cid = ?"
+	_, err := chc.db.Exec(query, newPrimaryIP, status, time.Now(), chc.cid)
 	if err != nil {
 		return err
 	}
@@ -117,7 +114,6 @@ func (chc *ClusterHealthChecker) updatePrimaryManager(newPrimaryIP string, statu
 	return nil
 }
 
-// **检测所有 Swarm 节点的健康状态**
 func (chc *ClusterHealthChecker) checkClusterHealth() {
 	log.Println("start health check")
 	nodes, err := chc.getSwarmNodes()

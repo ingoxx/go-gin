@@ -1,0 +1,9 @@
+[ERROR] 2025/02/24 14:58:34 D:/project/github.com/Lxb921006/go-gin/project/controller/assets/assetsTerminal.go:138: WebSocket 读取失败: websocket: close 1005 (no status)
+[ERROR] 2025/02/24 14:58:42 D:/project/github.com/Lxb921006/go-gin/project/controller/assets/assetsTerminal.go:138: WebSocket 读取失败: websocket: close 1005 (no status)
+[ERROR] 2025/02/24 14:58:48 D:/project/github.com/Lxb921006/go-gin/project/controller/assets/assetsTerminal.go:138: WebSocket 读取失败: websocket: close 1005 (no status)
+[ERROR] 2025/02/24 15:01:11 D:/project/github.com/Lxb921006/go-gin/project/controller/assets/assetsTerminal.go:138: WebSocket 读取失败: websocket: close 1005 (no status)
+[ERROR] 2025/02/24 15:01:20 D:/project/github.com/Lxb921006/go-gin/project/controller/assets/assetsTerminal.go:138: WebSocket 读取失败: websocket: close 1005 (no status)
+[ERROR] 2025/02/24 15:13:50 D:/project/github.com/Lxb921006/go-gin/project/controller/assets/assetsTerminal.go:138: WebSocket 读取失败: websocket: close 1005 (no status)
+[ERROR] 2025/02/24 15:13:55 D:/project/github.com/Lxb921006/go-gin/project/controller/assets/assetsTerminal.go:138: WebSocket 读取失败: websocket: close 1005 (no status)
+[ERROR] 2025/02/24 15:14:00 D:/project/github.com/Lxb921006/go-gin/project/controller/assets/assetsTerminal.go:138: WebSocket 读取失败: websocket: close 1005 (no status)
+[ERROR] 2025/02/24 15:15:20 D:/project/github.com/Lxb921006/go-gin/project/service/ws.go:136: 操作记录失败, errMsg: Error 1364 (HY000): Field 'url' doesn't have a default value
