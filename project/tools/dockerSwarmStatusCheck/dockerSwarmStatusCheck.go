@@ -149,7 +149,6 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 		if err != nil {
 			return
 		}
-		log.Println("leave type >>> ", ip, leaveType)
 
 		if leaveType == 1 {
 			chc.updateServerStatus(ip, 3, 300)

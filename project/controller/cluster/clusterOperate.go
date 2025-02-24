@@ -274,6 +274,7 @@ func (cl *SwarmOperate) UpdateServers() error {
 				"cluster_id": cl.ID,
 				//"node_type":   v.NodeType,
 				//"node_status": 3,
+				"leave_type": 3,
 			}).Error; err != nil {
 				return err
 			}
