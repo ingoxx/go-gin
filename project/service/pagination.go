@@ -2,7 +2,7 @@ package service
 
 import (
 	"errors"
-	"github.com/Lxb921006/Gin-bms/project/config"
+	"github.com/ingoxx/go-gin/project/config"
 
 	"gorm.io/gorm"
 )

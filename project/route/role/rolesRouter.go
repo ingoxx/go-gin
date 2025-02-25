@@ -1,7 +1,7 @@
 package role
 
 import (
-	rc "github.com/Lxb921006/Gin-bms/project/controller/role"
+	rc "github.com/ingoxx/go-gin/project/controller/role"
 
 	"github.com/gin-gonic/gin"
 )

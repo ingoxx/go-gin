@@ -2,10 +2,10 @@ package assets
 
 import (
 	"fmt"
-	"github.com/Lxb921006/Gin-bms/project/logger"
-	"github.com/Lxb921006/Gin-bms/project/logic/assets"
-	"github.com/Lxb921006/Gin-bms/project/model"
-	"github.com/Lxb921006/Gin-bms/project/service"
+	"github.com/ingoxx/go-gin/project/logger"
+	"github.com/ingoxx/go-gin/project/logic/assets"
+	"github.com/ingoxx/go-gin/project/model"
+	"github.com/ingoxx/go-gin/project/service"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/mitchellh/mapstructure"

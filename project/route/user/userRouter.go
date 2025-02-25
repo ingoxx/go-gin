@@ -1,7 +1,7 @@
 package user
 
 import (
-	uc "github.com/Lxb921006/Gin-bms/project/controller/user"
+	uc "github.com/ingoxx/go-gin/project/controller/user"
 
 	"github.com/gin-gonic/gin"
 )

@@ -3,11 +3,11 @@ package model
 import (
 	"errors"
 	"fmt"
-	ginErr "github.com/Lxb921006/Gin-bms/project/errors"
-	"github.com/Lxb921006/Gin-bms/project/utils/encryption"
+	ginErr "github.com/ingoxx/go-gin/project/errors"
+	"github.com/ingoxx/go-gin/project/utils/encryption"
 
-	"github.com/Lxb921006/Gin-bms/project/dao"
-	"github.com/Lxb921006/Gin-bms/project/service"
+	"github.com/ingoxx/go-gin/project/dao"
+	"github.com/ingoxx/go-gin/project/service"
 )
 
 type Login struct {

@@ -3,9 +3,9 @@ package operate
 import (
 	"time"
 
-	"github.com/Lxb921006/Gin-bms/project/api"
-	"github.com/Lxb921006/Gin-bms/project/model"
-	"github.com/Lxb921006/Gin-bms/project/service"
+	"github.com/ingoxx/go-gin/project/api"
+	"github.com/ingoxx/go-gin/project/model"
+	"github.com/ingoxx/go-gin/project/service"
 )
 
 type OperateLogListQuery struct {

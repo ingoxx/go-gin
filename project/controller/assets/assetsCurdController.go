@@ -2,10 +2,10 @@ package assets
 
 import (
 	"errors"
-	"github.com/Lxb921006/Gin-bms/project/command/rpcConfig"
-	"github.com/Lxb921006/Gin-bms/project/model"
-	"github.com/Lxb921006/Gin-bms/project/service"
-	"github.com/Lxb921006/Gin-bms/project/utils/encryption"
+	"github.com/ingoxx/go-gin/project/command/rpcConfig"
+	"github.com/ingoxx/go-gin/project/model"
+	"github.com/ingoxx/go-gin/project/service"
+	"github.com/ingoxx/go-gin/project/utils/encryption"
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
 	"path/filepath"

@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"github.com/Lxb921006/Gin-bms/project/config"
+	"github.com/ingoxx/go-gin/project/config"
 	"strconv"
 	"sync"
 	"time"

@@ -3,9 +3,9 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Lxb921006/Gin-bms/project/api"
-	"github.com/Lxb921006/Gin-bms/project/command/client"
-	"github.com/Lxb921006/Gin-bms/project/logger"
+	"github.com/ingoxx/go-gin/project/api"
+	"github.com/ingoxx/go-gin/project/command/client"
+	"github.com/ingoxx/go-gin/project/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"google.golang.org/grpc"

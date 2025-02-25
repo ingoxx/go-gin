@@ -1,7 +1,7 @@
 package cluster
 
 import (
-	cc "github.com/Lxb921006/Gin-bms/project/controller/cluster"
+	cc "github.com/ingoxx/go-gin/project/controller/cluster"
 	"github.com/gin-gonic/gin"
 )
 

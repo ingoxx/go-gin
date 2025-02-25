@@ -3,8 +3,8 @@ package user
 import (
 	"errors"
 	"fmt"
-	"github.com/Lxb921006/Gin-bms/project/dao"
-	"github.com/Lxb921006/Gin-bms/project/model"
+	"github.com/ingoxx/go-gin/project/dao"
+	"github.com/ingoxx/go-gin/project/model"
 	"github.com/go-playground/validator/v10"
 )
 

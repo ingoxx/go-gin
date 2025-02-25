@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Lxb921006/Gin-bms/project/logger"
-	"github.com/Lxb921006/Gin-bms/project/model"
-	"github.com/Lxb921006/Gin-bms/project/utils/encryption"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/ingoxx/go-gin/project/logger"
+	"github.com/ingoxx/go-gin/project/model"
+	"github.com/ingoxx/go-gin/project/utils/encryption"
 	"golang.org/x/crypto/ssh"
 	"io"
 	"sync"
@@ -111,12 +111,10 @@ func (wt *WebTerminal) sshSession(config *ssh.ClientConfig) (*ssh.Session, error
 	cols, rows := 80, 24
 
 	modes := ssh.TerminalModes{
-		ssh.ECHO:    1,
-		ssh.ECHOCTL: 0,
-		ssh.IGNCR:   0,
-		ssh.ICRNL:   1,
-		ssh.OCRNL:   1,
-		ssh.ONLCR:   1,
+		ssh.ECHO:          1,     // 启用回显
+		ssh.ECHOCTL:       0,     // 不将控制字符显示为^X
+		ssh.TTY_OP_ISPEED: 14400, // 输入速度
+		ssh.TTY_OP_OSPEED: 14400, // 输出速度
 	}
 
 	if err := session.RequestPty("xterm-256color", rows, cols, modes); err != nil {

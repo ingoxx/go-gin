@@ -1,7 +1,7 @@
 package perms
 
 import (
-	pc "github.com/Lxb921006/Gin-bms/project/controller/perms"
+	pc "github.com/ingoxx/go-gin/project/controller/perms"
 
 	"github.com/gin-gonic/gin"
 )

@@ -1,8 +1,8 @@
 package migrate
 
 import (
-	"github.com/Lxb921006/Gin-bms/project/dao"
-	"github.com/Lxb921006/Gin-bms/project/model"
+	"github.com/ingoxx/go-gin/project/dao"
+	"github.com/ingoxx/go-gin/project/model"
 )
 
 func InitTable() (err error) {

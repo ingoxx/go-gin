@@ -1,9 +1,9 @@
 package user
 
 import (
-	"github.com/Lxb921006/Gin-bms/project/api"
-	"github.com/Lxb921006/Gin-bms/project/model"
-	"github.com/Lxb921006/Gin-bms/project/service"
+	"github.com/ingoxx/go-gin/project/api"
+	"github.com/ingoxx/go-gin/project/model"
+	"github.com/ingoxx/go-gin/project/service"
 	"github.com/mitchellh/mapstructure"
 )
 

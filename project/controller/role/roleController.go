@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Lxb921006/Gin-bms/project/model"
+	"github.com/ingoxx/go-gin/project/model"
 
-	"github.com/Lxb921006/Gin-bms/project/logic/role"
+	"github.com/ingoxx/go-gin/project/logic/role"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"

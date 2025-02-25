@@ -6,8 +6,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/Lxb921006/Gin-bms/project/config"
-	ginErr "github.com/Lxb921006/Gin-bms/project/errors"
+	"github.com/ingoxx/go-gin/project/config"
+	ginErr "github.com/ingoxx/go-gin/project/errors"
 	"golang.org/x/crypto/bcrypt"
 	"os"
 )

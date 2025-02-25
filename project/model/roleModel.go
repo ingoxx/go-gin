@@ -1,9 +1,9 @@
 package model
 
 import (
-	"github.com/Lxb921006/Gin-bms/project/dao"
-	"github.com/Lxb921006/Gin-bms/project/errors"
-	"github.com/Lxb921006/Gin-bms/project/service"
+	"github.com/ingoxx/go-gin/project/dao"
+	"github.com/ingoxx/go-gin/project/errors"
+	"github.com/ingoxx/go-gin/project/service"
 
 	"gorm.io/gorm"
 )

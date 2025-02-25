@@ -2,7 +2,7 @@ package cluster
 
 import (
 	"fmt"
-	"github.com/Lxb921006/Gin-bms/project/model"
+	"github.com/ingoxx/go-gin/project/model"
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
 	"net/http"

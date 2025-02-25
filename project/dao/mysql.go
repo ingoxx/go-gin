@@ -3,7 +3,7 @@ package dao
 import (
 	"time"
 
-	"github.com/Lxb921006/Gin-bms/project/config"
+	"github.com/ingoxx/go-gin/project/config"
 
 	// _ "github.com/go-sql-driver/mysql"
 	// "github.com/jinzhu/gorm"

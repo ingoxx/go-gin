@@ -1,7 +1,7 @@
 package login
 
 import (
-	lc "github.com/Lxb921006/Gin-bms/project/controller/login"
+	lc "github.com/ingoxx/go-gin/project/controller/login"
 
 	"github.com/gin-gonic/gin"
 )

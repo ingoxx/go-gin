@@ -2,10 +2,10 @@ package utils
 
 import (
 	"fmt"
-	"github.com/Lxb921006/Gin-bms/project/api"
-	"github.com/Lxb921006/Gin-bms/project/command/client"
-	"github.com/Lxb921006/Gin-bms/project/logger"
-	"github.com/Lxb921006/Gin-bms/project/model"
+	"github.com/ingoxx/go-gin/project/api"
+	"github.com/ingoxx/go-gin/project/command/client"
+	"github.com/ingoxx/go-gin/project/logger"
+	"github.com/ingoxx/go-gin/project/model"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

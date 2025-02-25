@@ -1,17 +1,17 @@
 package root
 
 import (
-	"github.com/Lxb921006/Gin-bms/project/route/cluster"
+	"github.com/ingoxx/go-gin/project/route/cluster"
 	"net/http"
 	"time"
 
-	"github.com/Lxb921006/Gin-bms/project/middleware"
-	"github.com/Lxb921006/Gin-bms/project/route/assets"
-	"github.com/Lxb921006/Gin-bms/project/route/login"
-	"github.com/Lxb921006/Gin-bms/project/route/operate"
-	"github.com/Lxb921006/Gin-bms/project/route/perms"
-	"github.com/Lxb921006/Gin-bms/project/route/role"
-	"github.com/Lxb921006/Gin-bms/project/route/user"
+	"github.com/ingoxx/go-gin/project/middleware"
+	"github.com/ingoxx/go-gin/project/route/assets"
+	"github.com/ingoxx/go-gin/project/route/login"
+	"github.com/ingoxx/go-gin/project/route/operate"
+	"github.com/ingoxx/go-gin/project/route/perms"
+	"github.com/ingoxx/go-gin/project/route/role"
+	"github.com/ingoxx/go-gin/project/route/user"
 
 	"github.com/gin-gonic/gin"
 )

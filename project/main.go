@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/Lxb921006/Gin-bms/project/config"
-	"github.com/Lxb921006/Gin-bms/project/logger"
-	"github.com/Lxb921006/Gin-bms/project/migrate"
+	"github.com/ingoxx/go-gin/project/config"
+	"github.com/ingoxx/go-gin/project/logger"
+	"github.com/ingoxx/go-gin/project/migrate"
 	"log"
 
-	"github.com/Lxb921006/Gin-bms/project/dao"
-	"github.com/Lxb921006/Gin-bms/project/route/root"
+	"github.com/ingoxx/go-gin/project/dao"
+	"github.com/ingoxx/go-gin/project/route/root"
 )
 
 func main() {

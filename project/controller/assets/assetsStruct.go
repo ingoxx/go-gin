@@ -1,6 +1,6 @@
 package assets
 
-import "github.com/Lxb921006/Gin-bms/project/model"
+import "github.com/ingoxx/go-gin/project/model"
 
 var am model.AssetsProgramUpdateRecordModel
 var om model.OperateLogModel

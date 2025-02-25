@@ -3,8 +3,8 @@ package operatelog
 import (
 	"net/http"
 
-	"github.com/Lxb921006/Gin-bms/project/logic/operate"
-	"github.com/Lxb921006/Gin-bms/project/model"
+	"github.com/ingoxx/go-gin/project/logic/operate"
+	"github.com/ingoxx/go-gin/project/model"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"

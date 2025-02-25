@@ -1,7 +1,7 @@
 package assets
 
 import (
-	"github.com/Lxb921006/Gin-bms/project/model"
+	"github.com/ingoxx/go-gin/project/model"
 )
 
 type ProgramOperate struct {

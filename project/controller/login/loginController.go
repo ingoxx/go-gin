@@ -2,10 +2,10 @@ package login
 
 import (
 	"fmt"
-	ginErr "github.com/Lxb921006/Gin-bms/project/errors"
+	ginErr "github.com/ingoxx/go-gin/project/errors"
 	"net/http"
 
-	"github.com/Lxb921006/Gin-bms/project/model"
+	"github.com/ingoxx/go-gin/project/model"
 	"github.com/gin-gonic/gin"
 )
 

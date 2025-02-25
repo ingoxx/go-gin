@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/Lxb921006/Gin-bms/project/command;command";
+option go_package = "github.com/ingoxx/go-gin/project/command;command";
 
 package command;
 

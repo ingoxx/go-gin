@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	pb "github.com/Lxb921006/Gin-bms/project/command/command"
-	"github.com/Lxb921006/Gin-bms/project/model"
+	pb "github.com/ingoxx/go-gin/project/command/command"
+	"github.com/ingoxx/go-gin/project/model"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )

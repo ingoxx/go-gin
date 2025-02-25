@@ -1,7 +1,7 @@
 package assets
 
 import (
-	ac "github.com/Lxb921006/Gin-bms/project/controller/assets"
+	ac "github.com/ingoxx/go-gin/project/controller/assets"
 	"github.com/gin-gonic/gin"
 )
 

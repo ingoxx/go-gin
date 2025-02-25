@@ -5,8 +5,8 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"net/http"
 
-	"github.com/Lxb921006/Gin-bms/project/logic/user"
-	"github.com/Lxb921006/Gin-bms/project/model"
+	"github.com/ingoxx/go-gin/project/logic/user"
+	"github.com/ingoxx/go-gin/project/model"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"

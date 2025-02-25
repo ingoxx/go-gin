@@ -1,4 +1,4 @@
-module github.com/Lxb921006/Gin-bms
+module github.com/ingoxx/go-gin
 
 go 1.23.0
 

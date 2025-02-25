@@ -3,7 +3,7 @@ package dockerSwarmStatusCheck
 import (
 	"context"
 	"database/sql"
-	"github.com/Lxb921006/Gin-bms/project/config"
+	"github.com/ingoxx/go-gin/project/config"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"

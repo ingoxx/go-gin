@@ -1,7 +1,7 @@
 package operate
 
 import (
-	oc "github.com/Lxb921006/Gin-bms/project/controller/operatelog"
+	oc "github.com/ingoxx/go-gin/project/controller/operatelog"
 
 	"github.com/gin-gonic/gin"
 )
