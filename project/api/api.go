@@ -14,4 +14,5 @@ type ModelCurd interface {
 
 type RecordWebsocketLog interface {
 	RecordLog(data map[string]interface{}) error
+	DataCount(url string) (err error)
 }

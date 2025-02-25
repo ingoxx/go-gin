@@ -3,11 +3,11 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/ingoxx/go-gin/project/api"
 	"github.com/ingoxx/go-gin/project/command/client"
 	"github.com/ingoxx/go-gin/project/logger"
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
@@ -138,6 +138,7 @@ func (ws *Ws) recordLog() {
 }
 
 func (ws *Ws) RecordLog(data map[string]interface{}) error {
+
 	if ws.gCtx.Request.URL.Path == "/assets/run-linux-cmd" {
 		data["Url"] = fmt.Sprintf("%s, 批量执行命令: %s, 操作服务器: %v", ws.gCtx.Request.URL.Path, ws.Cmd, ws.Ip)
 		data["Operator"] = ws.gCtx.Query("user")
@@ -151,6 +152,10 @@ func (ws *Ws) RecordLog(data map[string]interface{}) error {
 	}
 
 	if err := ws.record.RecordLog(data); err != nil {
+		return err
+	}
+
+	if err := ws.record.DataCount(ws.gCtx.Request.URL.Path); err != nil {
 		return err
 	}
 

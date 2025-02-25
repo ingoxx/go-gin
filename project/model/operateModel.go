@@ -6,9 +6,9 @@ import (
 	"io"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/ingoxx/go-gin/project/dao"
 	"github.com/ingoxx/go-gin/project/service"
-	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
@@ -118,14 +118,14 @@ func (o *OperateLogModel) AddOperateLog(ctx *gin.Context) (err error) {
 		return
 	}
 
-	if err := o.dataCount(ctx.Request.URL.Path); err != nil {
+	if err := o.DataCount(ctx.Request.URL.Path); err != nil {
 		return err
 	}
 
 	return
 }
 
-func (o *OperateLogModel) dataCount(url string) (err error) {
+func (o *OperateLogModel) DataCount(url string) (err error) {
 	if url == "/login" {
 		if err := o.recordHighFrequencyData(dao.LoginNum); err != nil {
 			return err
@@ -262,9 +262,9 @@ func (o *OperateLogModel) AloneAddOperateLog(data map[string]string) error {
 func (o *OperateLogModel) findSevenDaysLoginNum() ([]map[string]interface{}, error) {
 	var dataList = make([]map[string]interface{}, 0)
 	rows, err := dao.DB.Raw(`
-		SELECT DATE(created_at) as date, count(1) as login_num FROM operate_log_models 
-		where DATE(created_at) > NOW() - INTERVAL 7 DAY and url like '%/login%'
-		GROUP BY DATE(created_at);
+		SELECT DATE(start) as date, count(1) as login_num FROM operate_log_models 
+		where DATE(start) > NOW() - INTERVAL 7 DAY and url like '%/login%'
+		GROUP BY DATE(start);
 	`).Rows()
 
 	if err != nil {
@@ -296,9 +296,9 @@ func (o *OperateLogModel) findSevenDaysLoginNum() ([]map[string]interface{}, err
 func (o *OperateLogModel) findSevenDaysRunLinuxCmdNum() ([]map[string]interface{}, error) {
 	var dataList = make([]map[string]interface{}, 0)
 	rows, err := dao.DB.Raw(`
-		SELECT DATE(created_at) as date, count(1) as run_num FROM operate_log_models 
-		where DATE(created_at) > NOW() - INTERVAL 7 DAY and url like '%/assets/run-linux-cmd%' 
-		GROUP BY DATE(created_at);
+		SELECT DATE(start) as date, count(1) as run_num FROM operate_log_models 
+		where DATE(start) > NOW() - INTERVAL 7 DAY and url like '%/assets/run-linux-cmd%' 
+		GROUP BY DATE(start);
 	`).Rows()
 
 	if err != nil {
@@ -332,7 +332,7 @@ func (o *OperateLogModel) findUserLoginNum() ([]map[string]interface{}, error) {
 	rows, err := dao.DB.Raw(`
 		select operator, count(1) as user_login_num from operate_log_models 
 		where url like '%/login%' 
-		GROUP BY operator ORDER BY user_login_num LIMIT 5;
+		GROUP BY operator LIMIT 5;
 	`).Rows()
 
 	if err != nil {
