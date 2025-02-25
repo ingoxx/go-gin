@@ -2,8 +2,8 @@ package cluster
 
 import (
 	"fmt"
-	"github.com/ingoxx/go-gin/project/model"
 	"github.com/gin-gonic/gin"
+	"github.com/ingoxx/go-gin/project/model"
 	"github.com/mitchellh/mapstructure"
 	"net/http"
 )
