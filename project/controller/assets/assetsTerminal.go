@@ -2,6 +2,7 @@ package assets
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,12 +10,63 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/ingoxx/go-gin/project/logger"
 	"github.com/ingoxx/go-gin/project/model"
+	"github.com/ingoxx/go-gin/project/tools/ddwarning"
 	"github.com/ingoxx/go-gin/project/utils/encryption"
 	"golang.org/x/crypto/ssh"
 	"io"
+	"regexp"
+	"strings"
 	"sync"
 	"time"
 )
+
+var ansiEscapeCodeRegex = regexp.MustCompile(`(?m)^([\w.-]+)@([\w.-]+):([/~\w.-]+)[$#]`)
+
+type TerminalParser struct {
+	outputBuffer   *bytes.Buffer
+	ansiEscapeCode *regexp.Regexp
+	promptPattern  *regexp.Regexp
+	currentLine    []byte
+}
+
+func NewTerminalParser() *TerminalParser {
+	return &TerminalParser{
+		outputBuffer:   bytes.NewBuffer(nil),
+		ansiEscapeCode: regexp.MustCompile(`\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])`),
+		promptPattern:  regexp.MustCompile(`^.*?([#\$➤])\s`), // 匹配常见提示符结尾
+	}
+}
+
+func (tp *TerminalParser) ParseOutput(data []byte) string {
+	tp.outputBuffer.Write(data)
+	rawOutput := tp.outputBuffer.Bytes()
+
+	// 1. 去除所有ANSI转义码
+	cleanOutput := tp.ansiEscapeCode.ReplaceAll(rawOutput, []byte{})
+
+	// 2. 分割为多行处理
+	lines := bytes.Split(cleanOutput, []byte{'\n'})
+	if len(lines) == 0 {
+		return ""
+	}
+
+	// 3. 取最后一行进行处理
+	currentLine := bytes.TrimRight(lines[len(lines)-1], "\r")
+
+	// 4. 动态识别并去除提示符
+	if loc := tp.promptPattern.FindSubmatchIndex(currentLine); loc != nil {
+		// 找到提示符结尾位置（符号位置 + 1 + 空格）
+		promptEnd := loc[3] + 1
+		if promptEnd <= len(currentLine) {
+			tp.currentLine = currentLine[promptEnd:]
+			return string(tp.currentLine)
+		}
+	}
+
+	// 5. 保留未识别提示符的原始内容（调试用）
+	tp.currentLine = currentLine
+	return string(tp.currentLine)
+}
 
 type CommandCapture struct {
 	Buffer    []byte
@@ -34,6 +86,8 @@ type WebTerminal struct {
 	cmdCache *CommandCapture
 	wsMutex  sync.Mutex
 	ctx      *gin.Context
+	signal   chan string
+	parser   *TerminalParser
 }
 
 func NewWebTerminal(wc *websocket.Conn, ctx *gin.Context) *WebTerminal {
@@ -43,6 +97,8 @@ func NewWebTerminal(wc *websocket.Conn, ctx *gin.Context) *WebTerminal {
 		cmdCache: &CommandCapture{
 			StartTime: time.Now(),
 		},
+		signal: make(chan string),
+		parser: NewTerminalParser(),
 	}
 }
 
@@ -137,6 +193,7 @@ func (wt *WebTerminal) handleInput(stdin io.Writer, session *ssh.Session) {
 			break
 		}
 
+		// 检测窗口变化
 		if len(msg) > 0 && msg[0] == '{' {
 			var resize struct {
 				Type string `json:"type"`
@@ -153,6 +210,7 @@ func (wt *WebTerminal) handleInput(stdin io.Writer, session *ssh.Session) {
 			}
 		}
 
+		// 记录用户在终端的操作命令
 		wt.processInput(msg)
 
 		if _, err := stdin.Write(msg); err != nil {
@@ -174,9 +232,12 @@ func (wt *WebTerminal) handleOutput(stdout io.Reader) {
 			buf := make([]byte, 4096)
 			n, err := reader.Read(buf)
 			if err != nil {
+				close(wt.signal)
 				close(s.dataChan)
 				return
 			}
+			// 解析输出并更新当前输入行
+			wt.parser.ParseOutput(buf[:n])
 
 			// 深拷贝数据并发送到管道
 			data := make([]byte, n)
@@ -187,17 +248,63 @@ func (wt *WebTerminal) handleOutput(stdout io.Reader) {
 
 	go func() {
 		defer close(s.quitChan)
-		for data := range s.dataChan {
-			wt.wsMutex.Lock()
-			if err := wt.wsConn.WriteMessage(websocket.BinaryMessage, data); err != nil {
+		for {
+			select {
+			case data := <-s.dataChan:
+				wt.wsMutex.Lock()
+				if err := wt.wsConn.WriteMessage(websocket.BinaryMessage, data); err != nil {
+					wt.wsMutex.Unlock()
+					return
+				}
 				wt.wsMutex.Unlock()
-				return
 			}
-			wt.wsMutex.Unlock()
 		}
+
 	}()
 
 	<-s.quitChan
+}
+
+func (wt *WebTerminal) processInput(data []byte) error {
+	wt.cmdCache.Lock.Lock()
+	defer wt.cmdCache.Lock.Unlock()
+
+	// 从解析器获取当前实际输入行
+	currentLine := wt.parser.currentLine
+	wt.cmdCache.Buffer = make([]byte, len(currentLine))
+	copy(wt.cmdCache.Buffer, currentLine)
+
+	for _, b := range data {
+		switch b {
+		case '\r': // 捕获回车键
+			if len(wt.cmdCache.Buffer) > 0 {
+				fullCmd := string(wt.cmdCache.Buffer)
+				if fullCmd == "" {
+					return nil
+				}
+				go func() {
+					if err := wt.saveCmd(fullCmd); err != nil {
+						logger.Error(fmt.Sprintf("保存cmd失败, cmd: %s, ip: %s, errMsg: %s", fullCmd, wt.ip, err.Error()))
+					}
+				}()
+				if err := wt.isDangerCmd(fullCmd); err != nil {
+					return err
+				}
+				wt.cmdCache.Buffer = []byte{}
+			}
+		case '\x08': // 处理退格键
+			if len(wt.cmdCache.Buffer) > 0 {
+				wt.cmdCache.Buffer = wt.cmdCache.Buffer[:len(wt.cmdCache.Buffer)-1]
+			}
+		case '\t': // 转换TAB为可读格式
+		default:
+			if b >= 32 && b <= 126 { // 只记录可打印ASCII字符
+				wt.cmdCache.Buffer = append(wt.cmdCache.Buffer, b)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (wt *WebTerminal) saveCmd(cmd string) error {
@@ -215,37 +322,15 @@ func (wt *WebTerminal) saveCmd(cmd string) error {
 	return nil
 }
 
-func (wt *WebTerminal) processInput(data []byte) {
-	wt.cmdCache.Lock.Lock()
-	defer wt.cmdCache.Lock.Unlock()
-
-	for _, b := range data {
-		switch b {
-		case '\r': // 捕获回车键
-			if len(wt.cmdCache.Buffer) > 0 {
-				fullCmd := string(wt.cmdCache.Buffer)
-				if fullCmd == "" {
-					return
-				}
-				go func() {
-					if err := wt.saveCmd(fullCmd); err != nil {
-						logger.Error(fmt.Sprintf("保存cmd失败, cmd: %s, ip: %s, errMsg: %s", fullCmd, wt.ip, err.Error()))
-					}
-				}()
-				wt.cmdCache.Buffer = []byte{}
-			}
-		case '\x08': // 处理退格键
-			if len(wt.cmdCache.Buffer) > 0 {
-				wt.cmdCache.Buffer = wt.cmdCache.Buffer[:len(wt.cmdCache.Buffer)-1]
-			}
-		case '\t': // 转换TAB为可读格式
-			wt.cmdCache.Buffer = append(wt.cmdCache.Buffer, ' ', ' ')
-		default:
-			if b >= 32 && b <= 126 { // 只记录可打印ASCII字符
-				wt.cmdCache.Buffer = append(wt.cmdCache.Buffer, b)
-			}
-		}
+// isDangerCmd 高风险命令提醒
+func (wt *WebTerminal) isDangerCmd(cmd string) error {
+	if strings.HasPrefix(cmd, "rm") {
+		msg := fmt.Sprintf("%s, 终端命令操作审计, server ip: %s, run cmd: %s", wt.ctx.Request.URL.Path, wt.ip, cmd)
+		ddwarning.SendWarning(msg)
+		return errors.New("danger cmd, not allow to execute")
 	}
+
+	return nil
 }
 
 func (wt *WebTerminal) sshConfig() (*ssh.ClientConfig, error) {
