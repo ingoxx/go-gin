@@ -20,8 +20,6 @@ import (
 	"time"
 )
 
-var ansiEscapeCodeRegex = regexp.MustCompile(`(?m)^([\w.-]+)@([\w.-]+):([/~\w.-]+)[$#]`)
-
 type TerminalParser struct {
 	outputBuffer   *bytes.Buffer
 	ansiEscapeCode *regexp.Regexp
