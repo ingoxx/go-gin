@@ -22,7 +22,7 @@ var (
 
 func InitPoolRds() (err error) {
 	RdPool = redis.NewClient(&redis.Options{
-		Addr:         config.RedisConAddre,
+		Addr:         config.RedisConAddr,
 		DB:           config.RedisUserDb,
 		Password:     config.RedisPwd,
 		MinIdleConns: 5,
@@ -239,7 +239,7 @@ func (r *RedisDb) ReqFrequencyLimit(host string) (err error) {
 		return
 	}
 
-	if vd.Rtime >= ut && vd.Count > config.Frequency {
+	if vd.Rtime >= ut && vd.Count > uint(config.Frequency) {
 		vd.Count = 1
 		vd.Wait = ut + 10
 		r.md["visit_"+host] = vd

@@ -3,11 +3,11 @@ package dockerSwarmStatusCheck
 import (
 	"context"
 	"database/sql"
-	"github.com/ingoxx/go-gin/project/config"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/ingoxx/go-gin/project/config"
 	"log"
 	"time"
 )
@@ -245,7 +245,7 @@ func Check(currentServerIp string) {
 }
 
 func initDb() (*sql.DB, error) {
-	db, err := sql.Open("mysql", config.MyConAddre)
+	db, err := sql.Open("mysql", config.MyConAddr)
 	if err != nil {
 		return db, err
 	}

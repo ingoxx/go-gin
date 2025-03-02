@@ -20,6 +20,9 @@ import (
 	"time"
 )
 
+// ssh session过期时间(分钟)
+var sshSession = 1
+
 type TerminalParser struct {
 	outputBuffer   *bytes.Buffer
 	ansiEscapeCode *regexp.Regexp
@@ -78,14 +81,15 @@ type outputSync struct {
 }
 
 type WebTerminal struct {
-	wsConn   *websocket.Conn
-	am       model.AssetsModel
-	ip       string
-	cmdCache *CommandCapture
-	wsMutex  sync.Mutex
-	ctx      *gin.Context
-	signal   chan string
-	parser   *TerminalParser
+	wsConn    *websocket.Conn
+	am        model.AssetsModel
+	ip        string
+	cmdCache  *CommandCapture
+	wsMutex   sync.Mutex
+	ctx       *gin.Context
+	signal    chan string
+	parser    *TerminalParser
+	sshClient *ssh.Client
 }
 
 func NewWebTerminal(wc *websocket.Conn, ctx *gin.Context) *WebTerminal {
@@ -150,7 +154,8 @@ func (wt *WebTerminal) sshSession(config *ssh.ClientConfig) (*ssh.Session, error
 		}
 		return nil, err
 	}
-	//defer client.Close()
+
+	wt.sshClient = client
 
 	session, err := client.NewSession()
 	if err != nil {
@@ -181,6 +186,13 @@ func (wt *WebTerminal) sshSession(config *ssh.ClientConfig) (*ssh.Session, error
 	}
 
 	return session, nil
+}
+
+func (wt *WebTerminal) sshClose() {
+	if wt.sshClient != nil {
+		wt.sshClient.Close()
+		wt.sshClient = nil
+	}
 }
 
 func (wt *WebTerminal) handleInput(stdin io.Writer, session *ssh.Session) {
