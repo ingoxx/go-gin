@@ -20,8 +20,8 @@ import (
 	"time"
 )
 
-// ssh session过期时间(分钟)
-var sshSession = 1
+// 如果没有任何操作, ssh session过期时间(分钟)
+const sshSession = 30
 
 type TerminalParser struct {
 	outputBuffer   *bytes.Buffer
@@ -90,6 +90,7 @@ type WebTerminal struct {
 	signal    chan string
 	parser    *TerminalParser
 	sshClient *ssh.Client
+	inputChan chan struct{}
 }
 
 func NewWebTerminal(wc *websocket.Conn, ctx *gin.Context) *WebTerminal {
@@ -99,8 +100,9 @@ func NewWebTerminal(wc *websocket.Conn, ctx *gin.Context) *WebTerminal {
 		cmdCache: &CommandCapture{
 			StartTime: time.Now(),
 		},
-		signal: make(chan string),
-		parser: NewTerminalParser(),
+		signal:    make(chan string),
+		inputChan: make(chan struct{}),
+		parser:    NewTerminalParser(),
 	}
 }
 
@@ -139,9 +141,36 @@ func (wt *WebTerminal) Ssh() (err error) {
 
 	go wt.handleOutput(reader)
 
+	// 30分钟内没有任何输入就断开ssh, websocket连接
+	go wt.monitorInputIsIdle()
+
 	wt.handleInput(stdin, session)
 
 	return nil
+}
+
+func (wt *WebTerminal) monitorInputIsIdle() {
+	timer := time.NewTimer(time.Minute * sshSession)
+
+	go func() {
+		for {
+			select {
+			case <-timer.C:
+				wt.wsConn.Close()
+				wt.sshClient.Close()
+			}
+		}
+	}()
+
+	for {
+		select {
+		case <-wt.inputChan:
+			if !timer.Stop() {
+				<-timer.C
+			}
+			timer.Reset(time.Minute * sshSession)
+		}
+	}
 }
 
 func (wt *WebTerminal) sshSession(config *ssh.ClientConfig) (*ssh.Session, error) {
@@ -188,13 +217,6 @@ func (wt *WebTerminal) sshSession(config *ssh.ClientConfig) (*ssh.Session, error
 	return session, nil
 }
 
-func (wt *WebTerminal) sshClose() {
-	if wt.sshClient != nil {
-		wt.sshClient.Close()
-		wt.sshClient = nil
-	}
-}
-
 func (wt *WebTerminal) handleInput(stdin io.Writer, session *ssh.Session) {
 	for {
 		_, msg, err := wt.wsConn.ReadMessage()
@@ -227,6 +249,9 @@ func (wt *WebTerminal) handleInput(stdin io.Writer, session *ssh.Session) {
 			logger.Error(fmt.Sprintf("WebSocket 输入写入 SSH 失败: %s", err.Error()))
 			break
 		}
+
+		// 监听输入
+		wt.inputChan <- struct{}{}
 	}
 }
 
