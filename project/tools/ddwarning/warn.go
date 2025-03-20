@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ingoxx/go-gin/project/logger"
 	"io"
-	"log"
 	"net/http"
 	"time"
 )
@@ -24,7 +24,7 @@ func NewWarnInfo(data string) *WarnInfo {
 
 func SendWarning(data string) {
 	if err := NewWarnInfo(data).sendWarningInfo(); err != nil {
-		log.Printf("sending warning message failed, errMsg: %s\n", err.Error())
+		logger.Error(fmt.Sprintf("发送钉钉警报失败, 失败信息: %s", err.Error()))
 	}
 }
 
