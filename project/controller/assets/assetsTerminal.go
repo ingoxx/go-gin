@@ -356,7 +356,6 @@ func (wt *WebTerminal) processInput(data []byte) error {
 func (wt *WebTerminal) saveCmd(cmd string) error {
 	var addLog model.OperateLogModel
 	var record = make(map[string]string)
-
 	removeControlChars := func(r rune) rune {
 		if r < 32 { // ASCII 0~31 是控制字符
 			return -1 // 过滤掉该字符
@@ -365,7 +364,7 @@ func (wt *WebTerminal) saveCmd(cmd string) error {
 	}
 	cleanStr := strings.Map(removeControlChars, cmd)
 	record["user"] = wt.ctx.Query("user")
-	record["url"] = fmt.Sprintf("%s, 终端命令操作日志, 操作服务器ip: %s, 执行命令: %v", wt.ctx.Request.URL.Path, wt.ip, cleanStr)
+	record["url"] = fmt.Sprintf("%s, 终端命令操作日志, 操作用户: %s, 操作服务器ip: %s, 执行命令: %v", wt.ctx.Request.URL.Path, wt.ctx.Query("user"), wt.ip, cleanStr)
 	record["ip"] = wt.ctx.RemoteIP()
 
 	if err := addLog.AloneAddOperateLog(record); err != nil {
@@ -377,8 +376,15 @@ func (wt *WebTerminal) saveCmd(cmd string) error {
 
 // isDangerCmd 高风险命令提醒
 func (wt *WebTerminal) isDangerCmd(cmd string) error {
-	if strings.HasPrefix(cmd, "rm") {
-		msg := fmt.Sprintf("%s, 终端命令操作日志, 操作服务器ip: %s, 执行命令: %s", wt.ctx.Request.URL.Path, wt.ip, cmd)
+	removeControlChars := func(r rune) rune {
+		if r < 32 { // ASCII 0~31 是控制字符
+			return -1 // 过滤掉该字符
+		}
+		return r
+	}
+	cleanStr := strings.Map(removeControlChars, cmd)
+	if strings.HasPrefix(cleanStr, "rm") {
+		msg := fmt.Sprintf("终端命令操作日志\n 请求地址: %s\n 操作用户: %s\n 操作服务器ip: %s\n 执行命令: %v\n", wt.ctx.Request.URL.Path, wt.ctx.Query("user"), wt.ip, cleanStr)
 		ddwarning.SendWarning(msg)
 		return errors.New("danger cmd, not allow to execute")
 	}
