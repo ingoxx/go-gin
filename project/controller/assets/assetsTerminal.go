@@ -364,7 +364,6 @@ func (wt *WebTerminal) saveCmd(cmd string) error {
 		return r
 	}
 	cleanStr := strings.Map(removeControlChars, cmd)
-	fmt.Printf("cmd >>> %s\n", cleanStr)
 	record["user"] = wt.ctx.Query("user")
 	record["url"] = fmt.Sprintf("%s, 终端命令操作日志, 操作服务器ip: %s, 执行命令: %v", wt.ctx.Request.URL.Path, wt.ip, cleanStr)
 	record["ip"] = wt.ctx.RemoteIP()
