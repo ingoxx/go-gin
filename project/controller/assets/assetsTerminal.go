@@ -3,6 +3,7 @@ package assets
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -91,6 +92,7 @@ type WebTerminal struct {
 	parser    *TerminalParser
 	sshClient *ssh.Client
 	inputChan chan struct{}
+	isFinish  chan struct{}
 }
 
 func NewWebTerminal(wc *websocket.Conn, ctx *gin.Context) *WebTerminal {
@@ -102,11 +104,15 @@ func NewWebTerminal(wc *websocket.Conn, ctx *gin.Context) *WebTerminal {
 		},
 		signal:    make(chan string),
 		inputChan: make(chan struct{}),
+		isFinish:  make(chan struct{}),
 		parser:    NewTerminalParser(),
 	}
 }
 
 func (wt *WebTerminal) Ssh() (err error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	wt.ip = wt.ctx.Query("ip")
 	wt.am, err = wt.am.GetServer(wt.ip)
 	if err != nil {
@@ -142,22 +148,26 @@ func (wt *WebTerminal) Ssh() (err error) {
 	go wt.handleOutput(reader)
 
 	// 30分钟内没有任何输入就断开ssh, websocket连接
-	go wt.monitorInputIsIdle()
+	go wt.monitorInputIsIdle(ctx)
 
 	wt.handleInput(stdin, session)
 
 	return nil
 }
 
-func (wt *WebTerminal) monitorInputIsIdle() {
+func (wt *WebTerminal) monitorInputIsIdle(ctx context.Context) {
 	timer := time.NewTimer(time.Minute * sshSession)
-
 	go func() {
 		for {
 			select {
 			case <-timer.C:
-				wt.wsConn.Close()
-				wt.sshClient.Close()
+				if wt.wsConn != nil && wt.sshClient != nil {
+					wt.wsConn.Close()
+					wt.sshClient.Close()
+				}
+				return
+			case <-ctx.Done():
+				return
 			}
 		}
 	}()
@@ -169,6 +179,8 @@ func (wt *WebTerminal) monitorInputIsIdle() {
 				<-timer.C
 			}
 			timer.Reset(time.Minute * sshSession)
+		case <-ctx.Done():
+			return
 		}
 	}
 }
