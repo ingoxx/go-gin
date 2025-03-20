@@ -324,6 +324,7 @@ func (wt *WebTerminal) processInput(data []byte) error {
 		case '\r': // 捕获回车键
 			if len(wt.cmdCache.Buffer) > 0 {
 				fullCmd := string(wt.cmdCache.Buffer)
+
 				if fullCmd == "" {
 					return nil
 				}
@@ -356,8 +357,16 @@ func (wt *WebTerminal) saveCmd(cmd string) error {
 	var addLog model.OperateLogModel
 	var record = make(map[string]string)
 
+	removeControlChars := func(r rune) rune {
+		if r < 32 { // ASCII 0~31 是控制字符
+			return -1 // 过滤掉该字符
+		}
+		return r
+	}
+	cleanStr := strings.Map(removeControlChars, cmd)
+	fmt.Printf("cmd >>> %s\n", cleanStr)
 	record["user"] = wt.ctx.Query("user")
-	record["url"] = fmt.Sprintf("%s, 终端命令操作审计, server ip: %s, run cmd: %s", wt.ctx.Request.URL.Path, wt.ip, cmd)
+	record["url"] = fmt.Sprintf("%s, 终端命令操作日志, 操作服务器ip: %s, 执行命令: %v", wt.ctx.Request.URL.Path, wt.ip, cleanStr)
 	record["ip"] = wt.ctx.RemoteIP()
 
 	if err := addLog.AloneAddOperateLog(record); err != nil {
@@ -370,7 +379,7 @@ func (wt *WebTerminal) saveCmd(cmd string) error {
 // isDangerCmd 高风险命令提醒
 func (wt *WebTerminal) isDangerCmd(cmd string) error {
 	if strings.HasPrefix(cmd, "rm") {
-		msg := fmt.Sprintf("%s, 终端命令操作审计, server ip: %s, run cmd: %s", wt.ctx.Request.URL.Path, wt.ip, cmd)
+		msg := fmt.Sprintf("%s, 终端命令操作日志, 操作服务器ip: %s, 执行命令: %s", wt.ctx.Request.URL.Path, wt.ip, cmd)
 		ddwarning.SendWarning(msg)
 		return errors.New("danger cmd, not allow to execute")
 	}
