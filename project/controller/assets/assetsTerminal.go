@@ -92,7 +92,6 @@ type WebTerminal struct {
 	parser    *TerminalParser
 	sshClient *ssh.Client
 	inputChan chan struct{}
-	isFinish  chan struct{}
 }
 
 func NewWebTerminal(wc *websocket.Conn, ctx *gin.Context) *WebTerminal {
@@ -104,7 +103,6 @@ func NewWebTerminal(wc *websocket.Conn, ctx *gin.Context) *WebTerminal {
 		},
 		signal:    make(chan string),
 		inputChan: make(chan struct{}),
-		isFinish:  make(chan struct{}),
 		parser:    NewTerminalParser(),
 	}
 }
