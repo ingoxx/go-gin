@@ -159,8 +159,10 @@ func (wt *WebTerminal) monitorInputIsIdle(ctx context.Context) {
 		for {
 			select {
 			case <-timer.C:
-				if wt.wsConn != nil && wt.sshClient != nil {
+				if wt.wsConn != nil {
 					wt.wsConn.Close()
+				}
+				if wt.sshClient != nil {
 					wt.sshClient.Close()
 				}
 				return
