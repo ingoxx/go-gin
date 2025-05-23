@@ -1,25 +1,31 @@
 package model
 
 import (
+	"encoding/json"
 	"github.com/ingoxx/go-gin/project/dao"
 	"github.com/ingoxx/go-gin/project/service"
 	"github.com/ingoxx/go-gin/project/utils/encryption"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 type User struct {
-	gorm.Model
-	Name     string `json:"name" gorm:"unique;not null"`
-	Email    string `json:"email" gorm:"unique;not null"`
-	Hobby    string `json:"-" gorm:"default:'basketball'"`
-	Tel      int    `json:"tel" gorm:"default:168888"`
-	Password string `json:"-" gorm:"not null"`
-	Roles    []Role `json:"roles" gorm:"many2many:role_users"`
-	Isopenga uint   `json:"isopenga" gorm:"default:1;comment:1-打开MFA,2-关闭MFA"`
-	Isopenqr uint   `json:"isopenqr" gorm:"default:1;comment:1-打开重置MFA,2-关闭重置MFA"`
-	MfaApp   uint   `json:"mfa_app" gorm:"default:1;comment:1-打开MFA应用下载,2-关闭MFA应用下载"`
+	//gorm.Model
+	ID        uint           `json:"id" gorm:"primarykey"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+	Name      string         `json:"name" gorm:"unique;not null"`
+	Email     string         `json:"email" gorm:"unique;not null"`
+	Hobby     string         `json:"-" gorm:"default:'basketball'"`
+	Tel       int            `json:"tel" gorm:"default:168888"`
+	Password  string         `json:"password" gorm:"not null"`
+	Roles     []Role         `json:"roles" gorm:"many2many:role_users"`
+	Isopenga  uint           `json:"isopenga" gorm:"default:1;comment:1-打开MFA,2-关闭MFA"`
+	Isopenqr  uint           `json:"isopenqr" gorm:"default:1;comment:1-打开重置MFA,2-关闭重置MFA"`
+	MfaApp    uint           `json:"mfa_app" gorm:"default:1;comment:1-打开MFA应用下载,2-关闭MFA应用下载"`
 }
 
 func (u *User) AddUser(au User, rid uint) (err error) {
@@ -35,6 +41,15 @@ func (u *User) AddUser(au User, rid uint) (err error) {
 
 	if err = dao.DB.Create(&au).Error; err != nil {
 		return
+	}
+
+	b, err := json.Marshal(au)
+	if err != nil {
+		return err
+	}
+
+	if err := dao.Rds.SetData(au.Name+"-rc", b); err != nil {
+		return err
 	}
 
 	return
@@ -113,6 +128,15 @@ func (u *User) UpdateUser(ud User, rid uint, uid uint) (err error) {
 		return
 	}
 
+	b, err := json.Marshal(ud)
+	if err != nil {
+		return err
+	}
+
+	if err := dao.Rds.SetData(ud.Name+"-rc", b); err != nil {
+		return err
+	}
+
 	return tx.Commit().Error
 }
 
@@ -142,7 +166,7 @@ func (u *User) GetUserByName(name string) (ud User, err error) {
 // GetUserByPaginate 单表中过滤出row
 func (u *User) GetUserByPaginate(page int, user User) (ul *service.Paginate, err error) {
 	var us []User
-	sql := dao.DB.Model(u).Where(&user).Preload("Roles")
+	sql := dao.DB.Omit("Password").Model(u).Where(&user).Preload("Roles")
 	pg := service.NewPaginate()
 	ul, err = pg.GetPageData(page, sql)
 	if err != nil {
@@ -162,7 +186,7 @@ func (u *User) GetUserByPaginate(page int, user User) (ul *service.Paginate, err
 func (u *User) GetUserByMmPaginate(page int, rolename string, user User) (ul *service.Paginate, err error) {
 	var us []User
 	var uid []uint
-	if err = dao.DB.Preload("Roles", Role{RoleName: rolename}).Where(&user).Find(&us).Error; err != nil {
+	if err = dao.DB.Omit("Password").Preload("Roles", Role{RoleName: rolename}).Where(&user).Find(&us).Error; err != nil {
 		return
 	}
 
@@ -170,7 +194,7 @@ func (u *User) GetUserByMmPaginate(page int, rolename string, user User) (ul *se
 		uid = append(uid, v.ID)
 	}
 
-	sql := dao.DB.Model(u).Where("id IN ?", uid).Preload("Roles")
+	sql := dao.DB.Omit("Password").Model(u).Where("id IN ?", uid).Preload("Roles")
 	pg := service.NewPaginate()
 	ul, err = pg.GetPageData(page, sql)
 	if err != nil {

@@ -18,14 +18,16 @@ import (
 
 func SetupRouter() *http.Server {
 	// gin.SetMode(gin.ReleaseMode) 正式生产环境需切换到Release模式，测试是debug模式
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 	router.Static("/static", "../static")
 	// route.LoadHTMLGlob("../../templates")
 	router.Use(middleware.AllowCos(),
 		middleware.TokenVerify(),
 		middleware.PermsVerify(),
-		middleware.ReqFrequencyLimit(),
-		middleware.OperateRecord())
+		//middleware.ReqFrequencyLimit(),
+		//middleware.OperateRecord(),
+	)
 
 	//加载路由配置
 	user.Router(router)

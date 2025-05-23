@@ -1,17 +1,18 @@
 package model
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	ginErr "github.com/ingoxx/go-gin/project/errors"
-	"github.com/ingoxx/go-gin/project/utils/encryption"
-
 	"github.com/ingoxx/go-gin/project/dao"
+	ginErr "github.com/ingoxx/go-gin/project/errors"
 	"github.com/ingoxx/go-gin/project/service"
+	"github.com/ingoxx/go-gin/project/utils/encryption"
+	"github.com/mitchellh/mapstructure"
 )
 
 type Login struct {
-	ID       uint   `json:"uid"`
+	ID       uint   `json:"id"`
 	Name     string `json:"name"`
 	Isopenga uint   `json:"isopenga"`
 	Isopenqr uint   `json:"isopenqr"`
@@ -131,7 +132,7 @@ func (l *Login) Authenticate(u, p string) (err error) {
 func (l *Login) IsOpenGoogleAuth(u string) (b bool, err error) {
 	var ui User
 	gas := service.NewGoogleAuthenticator("")
-	if err = dao.DB.Where("name = ?", u).Find(&ui).Error; err != nil {
+	if err = dao.DB.Select("isopenga, isopenqr").Where("name = ?", u).Find(&ui).Error; err != nil {
 		return
 	}
 
@@ -175,8 +176,22 @@ func (l *Login) CloseGoogleAuthQr(u string) (err error) {
 }
 
 func (l *Login) FillData(user string) (err error) {
-	if err = dao.DB.Model(&User{}).Where("name = ?", user).Scan(l).Error; err != nil {
-		return
+	data, err := dao.Rds.GetData(user + "-rc")
+	if err != nil {
+		return err
 	}
+
+	var us = new(User)
+	if err := json.Unmarshal(data, us); err != nil {
+		return err
+	}
+
+	if err := mapstructure.Decode(us, l); err != nil {
+		return err
+	}
+
+	//if err = dao.DB.Model(us).Select("id, isopenqr, mfa_app, name, password").Where("name = ?", user).Scan(l).Error; err != nil {
+	//	return
+	//}
 	return
 }

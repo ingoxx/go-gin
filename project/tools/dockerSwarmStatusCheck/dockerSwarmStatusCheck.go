@@ -3,11 +3,13 @@ package dockerSwarmStatusCheck
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/ingoxx/go-gin/project/config"
+	"github.com/ingoxx/go-gin/project/tools/ddwarning"
 	"log"
 	"time"
 )
@@ -114,11 +116,12 @@ func (chc *ClusterHealthChecker) updatePrimaryManager(newPrimaryIP string, statu
 	return nil
 }
 
-func (chc *ClusterHealthChecker) checkClusterHealth() {
+func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 	log.Println("start health check")
 	nodes, err := chc.getSwarmNodes()
 	if err != nil {
 		log.Printf("❌ Failed to get swarm nodes: %v\n", err)
+		ddwarning.SendWarning(fmt.Sprintf("无法获取节点信息, 失败信息: '%v', 集群ID: '%s'", err, chc.cid))
 	}
 
 	var primaryManagerIP string
@@ -143,6 +146,7 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 
 		leaveType, err := chc.getWorkerStatus(ip)
 		if err != nil {
+			ddwarning.SendWarning(fmt.Sprintf("获取节点状态失败, 失败信息: '%v', 集群id: '%s'", err, chc.cid))
 			return
 		}
 
@@ -156,14 +160,17 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 	primaryIP, err := chc.getPrimaryManager()
 	if err != nil {
 		log.Printf("Failed to get primary manager: %v\n", err)
+		ddwarning.SendWarning(fmt.Sprintf("获取主节点ip失败, 失败信息: '%v'", err))
 		return
 	}
 
 	// 检查集群是否可用
 	if !foundLeader {
 		log.Printf("❌ No healthy manager found! Cluster %s may be unavailable.\n", chc.cid)
+		ddwarning.SendWarning(fmt.Sprintf("集群异常, 异常节点id: '%s'", chc.cid))
 		if err := chc.updatePrimaryManager(primaryManagerIP, 100); err != nil {
 			log.Printf("❌ an error occurred while updating the manager node status, cluster [%s], errMsg: %s\n", chc.cid, err.Error())
+			ddwarning.SendWarning(fmt.Sprintf("更新集群节点状态失败0, 失败信息: '%v',所在节点id: '%s'", err, chc.cid))
 			return
 		}
 		return
@@ -179,6 +186,7 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 		log.Printf("✅ Swarm elected new Leader: %s. Updating database...\n", primaryManagerIP)
 		if err := chc.updatePrimaryManager(primaryManagerIP, 200); err != nil {
 			log.Printf("❌ an error occurred while updating the manager node status, cluster [%s], errMsg: %s\n", chc.cid, err.Error())
+			ddwarning.SendWarning(fmt.Sprintf("更新集群节点状态失败1, 失败信息: '%v',集群id: '%s'", err, chc.cid))
 			return
 		}
 	}
@@ -186,12 +194,14 @@ func (chc *ClusterHealthChecker) checkClusterHealth() {
 	status, err := chc.getPrimaryManagerStatus()
 	if err != nil {
 		log.Printf("❌ an error occurred while get the manager node status, cluster [%s], errMsg: %s\n", chc.cid, err.Error())
+		ddwarning.SendWarning(fmt.Sprintf("更新集群节点状态失败2, 失败信息: '%v',集群id: '%s'", err, chc.cid))
 		return
 	}
 
 	if status == 300 {
 		if err := chc.updatePrimaryManager(primaryManagerIP, 200); err != nil {
 			log.Printf("❌ an error occurred while updating the manager node status, cluster [%s], errMsg: %s\n", chc.cid, err.Error())
+			ddwarning.SendWarning(fmt.Sprintf("更新集群节点状态失败3, 失败信息: '%v',集群id: '%s'", err, chc.cid))
 			return
 		}
 	}
@@ -238,7 +248,7 @@ func Check(currentServerIp string) {
 				return
 			}
 			if cid != "" {
-				c.checkClusterHealth()
+				c.checkClusterHealth(currentServerIp)
 			}
 		}
 	}
