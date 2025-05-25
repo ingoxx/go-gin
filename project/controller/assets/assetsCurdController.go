@@ -2,11 +2,11 @@ package assets
 
 import (
 	"errors"
+	"github.com/gin-gonic/gin"
 	"github.com/ingoxx/go-gin/project/command/rpcConfig"
 	"github.com/ingoxx/go-gin/project/model"
 	"github.com/ingoxx/go-gin/project/service"
 	"github.com/ingoxx/go-gin/project/utils/encryption"
-	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
 	"path/filepath"
 )
@@ -22,6 +22,30 @@ type ListForm struct {
 	NodeStatus uint   `json:"node_status" form:"node_status"`
 	NodeType   uint   `json:"node_type" form:"node_type"`
 	OSType     uint   `json:"os_type" form:"os_type"`
+}
+
+func (a *ListForm) List2(ctx *gin.Context) (data []model.AssetsModel, total int64, err error) {
+	var al model.AssetsModel
+	if err = ctx.ShouldBind(a); err != nil {
+		return
+	}
+
+	//validate := validator.New()
+	vd := NewValidateData(validate)
+	if err = vd.ValidateStruct(a); err != nil {
+		return
+	}
+
+	if err = mapstructure.Decode(a, &al); err != nil {
+		return
+	}
+
+	data, total, err = al.List2(a.Page, 10, al)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 func (a *ListForm) List(ctx *gin.Context) (data *service.Paginate, err error) {

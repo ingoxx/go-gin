@@ -31,9 +31,65 @@ type AssetsModel struct {
 	LeaveType   uint         `json:"leave_type" gorm:"default:3;comment:1-手动离开集群,2-被动离开集群,3-未知原因"`
 }
 
+type AssetsWithCluster struct {
+	AssetsModel
+	ClusterID     uint   `json:"id"`
+	ClusterName   string `json:"name"`
+	ClusterStatus uint   `json:"status"`
+	ClusterCid    string `json:"cluster_cid"`
+}
+
+func (o *AssetsModel) List2(page int, pageSize int, filter AssetsModel) ([]AssetsModel, int64, error) {
+	var total int64
+	var result []AssetsModel
+
+	db := dao.DB.Model(&AssetsModel{}).Where(&filter)
+
+	// 1. 获取总数
+	if err := db.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if total == 0 {
+		return []AssetsModel{}, 0, nil
+	}
+
+	// 2. 分页获取符合条件的 ID（只查 ID，速度非常快）
+	var ids []uint
+	offset := (page - 1) * pageSize
+	if err := db.
+		Select("id").
+		Order("id desc").
+		Limit(pageSize).
+		Offset(offset).
+		Pluck("id", &ids).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if len(ids) == 0 {
+		return []AssetsModel{}, total, nil
+	}
+
+	// 3. 使用 ID 列表再次查询，携带关联字段
+	if err := dao.DB.
+		Model(&AssetsModel{}).
+		Preload("Cluster", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id", "cluster_cid", "name", "status")
+		}).
+		Where("id IN ?", ids).
+		Order("id desc").
+		Find(&result).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return result, total, nil
+}
+
 func (o *AssetsModel) List(page int, am AssetsModel) (data *service.Paginate, err error) {
 	var os []AssetsModel
-	sql := dao.DB.Model(o).Where(&am).Preload("Cluster")
+	sql := dao.DB.Model(o).Where(&am).Preload("Cluster", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id", "name", "status", "cluster_cid")
+	})
 	pg := service.NewPaginate()
 	data, err = pg.GetPageData(page, sql)
 	if err != nil {
@@ -61,17 +117,9 @@ func (o *AssetsModel) GetTerminalIp(id uint) (ip string, err error) {
 }
 
 func (o *AssetsModel) GetAllServersIp() ([]string, error) {
-	var ams []AssetsModel
-	var ip = make([]string, 0)
-	if err := dao.DB.Find(&ams).Error; err != nil {
-		return ip, err
-	}
-
-	for _, v := range ams {
-		ip = append(ip, v.Ip)
-	}
-
-	return ip, nil
+	var ips []string
+	err := dao.DB.Model(&AssetsModel{}).Pluck("ip", &ips).Error
+	return ips, err
 }
 
 func (o *AssetsModel) GetServer(ip string) (am AssetsModel, err error) {

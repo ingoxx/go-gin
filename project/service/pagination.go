@@ -22,50 +22,34 @@ func NewPaginate() *Paginate {
 	return &Paginate{}
 }
 
-func (p *Paginate) GetPageData(page int, sql *gorm.DB) (pg *Paginate, err error) {
+func (p *Paginate) GetPageData(page int, sql *gorm.DB) (*Paginate, error) {
 	var total int64
-	//这里是写死了每页最多展示的数据
-	var size = config.PageSize
-	if err = sql.Count(&total).Error; err != nil {
-		return
+	size := config.PageSize
+
+	// Count total rows
+	if err := sql.Count(&total).Error; err != nil {
+		return nil, err
 	}
 
+	// 没有数据，直接返回
 	if total == 0 {
-		p.Total = int(total)
+		p.Total = 0
 		p.PageSize = size
 		p.Gd = sql
-		pg = p
-		return
+		return p, nil
 	}
 
-	if page < 0 {
-		err = ErrorPageRangeSize
-		return
-	}
-
-	totalPage := int(total) / size
-
-	if mod := int(total) % size; mod != 0 {
-		totalPage += 1
-	}
-
-	if totalPage < page {
-		err = ErrorPageRangeSize
-		return
+	// 计算总页数 + 校验页码范围
+	totalPage := int((total + int64(size) - 1) / int64(size))
+	if page <= 0 || page > totalPage {
+		return nil, ErrorPageRangeSize
 	}
 
 	offset := (page - 1) * size
 
-	p.Gd = sql.Limit(size).Offset(offset).Order("id desc")
-
-	if p.Gd.Error != nil {
-		err = p.Gd.Error
-		return
-	}
-
+	// 只返回处理好的 DB 查询对象
 	p.Total = int(total)
 	p.PageSize = size
-	pg = p
-
-	return
+	p.Gd = sql.Offset(offset).Limit(size) // 不做 Order
+	return p, nil
 }

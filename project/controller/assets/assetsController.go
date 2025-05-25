@@ -2,12 +2,12 @@ package assets
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/ingoxx/go-gin/project/logger"
 	"github.com/ingoxx/go-gin/project/logic/assets"
 	"github.com/ingoxx/go-gin/project/model"
 	"github.com/ingoxx/go-gin/project/service"
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"net/http/httputil"
@@ -123,6 +123,38 @@ func UploadController(ctx *gin.Context) {
 			"code":    10000,
 		})
 	}
+}
+
+// ListController2 服务器列表
+func ListController2(ctx *gin.Context) {
+	var alc ListForm
+	data, total, err := alc.List2(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10001,
+		})
+		return
+	}
+
+	//clusterData, err := alc.GetAllClusterData()
+	//if err != nil {
+	//	ctx.JSON(http.StatusOK, gin.H{
+	//		"message": err.Error(),
+	//		"code":    10002,
+	//	})
+	//	return
+	//}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"data":     data,
+		"total":    total,
+		"pageSize": 10,
+		//"clusters": clusterData,
+		"config":  NewProgramConfig(),
+		"code":    10000,
+		"message": "ok",
+	})
 }
 
 // ListController 服务器列表

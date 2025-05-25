@@ -1,8 +1,8 @@
 package assets
 
 import (
-	ac "github.com/ingoxx/go-gin/project/controller/assets"
 	"github.com/gin-gonic/gin"
+	ac "github.com/ingoxx/go-gin/project/controller/assets"
 )
 
 func Router(r *gin.Engine) {
@@ -15,7 +15,8 @@ func Router(r *gin.Engine) {
 		assets.GET("/file/ws", ac.SyncFileController)
 		//assets.GET("/program/status", ac.GetMissionStatusController)
 		assets.GET("/program/update/list", ac.ProgramUpdateListController)
-		assets.GET("/list", ac.ListController)
+		//assets.GET("/list", ac.ListController)
+		assets.GET("/list", ac.ListController2)
 		assets.POST("/program/update/create", ac.CreateUpdateProgramRecordController)
 		assets.POST("/api", ac.RunProgramApiController)
 		assets.POST("/program/add", ac.AddProgramOperateController)
