@@ -12,9 +12,9 @@ var (
 
 func InitPoolRdb() (err error) {
 	Rdb = redis.NewClient(&redis.Options{
-		Addr:         ConAddr,
-		DB:           Db,
-		Password:     Pwd,
+		Addr:         RedisConAddre,
+		DB:           RedisUserDb,
+		Password:     RedisPwd,
 		MinIdleConns: 5,
 		PoolSize:     30,
 		PoolTimeout:  30 * time.Second,

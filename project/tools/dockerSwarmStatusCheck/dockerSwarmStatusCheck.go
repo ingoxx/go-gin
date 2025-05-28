@@ -117,7 +117,6 @@ func (chc *ClusterHealthChecker) updatePrimaryManager(newPrimaryIP string, statu
 }
 
 func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
-	log.Println("start health check")
 	nodes, err := chc.getSwarmNodes()
 	if err != nil {
 		log.Printf("❌ Failed to get swarm nodes: %v\n", err)
@@ -153,14 +152,20 @@ func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 		if leaveType == 1 {
 			chc.updateServerStatus(ip, 3, 300)
 		} else {
+			if clusterStatusInfo[status] == 100 {
+				esg := fmt.Sprintf("节点'%s'发生故障, 故障信息信息: '%v', 集群id: '%s'", ip, node.Status.State, chc.cid)
+				log.Println(esg)
+				ddwarning.SendWarning(esg)
+			}
 			chc.updateServerStatus(ip, clusterStatusInfo[role], clusterStatusInfo[status])
+
 		}
 	}
 
 	primaryIP, err := chc.getPrimaryManager()
 	if err != nil {
 		log.Printf("Failed to get primary manager: %v\n", err)
-		ddwarning.SendWarning(fmt.Sprintf("获取主节点ip失败, 失败信息: '%v'", err))
+		ddwarning.SendWarning(fmt.Sprintf("获取主节点ip失败, 失败信息: '%v', 集群id: '%s'", err, chc.cid))
 		return
 	}
 
@@ -248,6 +253,7 @@ func Check(currentServerIp string) {
 				return
 			}
 			if cid != "" {
+				log.Println("start health check")
 				c.checkClusterHealth(currentServerIp)
 			}
 		}
