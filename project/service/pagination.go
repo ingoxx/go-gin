@@ -50,6 +50,6 @@ func (p *Paginate) GetPageData(page int, sql *gorm.DB) (*Paginate, error) {
 	// 只返回处理好的 DB 查询对象
 	p.Total = int(total)
 	p.PageSize = size
-	p.Gd = sql.Offset(offset).Limit(size) // 不做 Order
+	p.Gd = sql.Order("id DESC").Offset(offset).Limit(size) // 不做 Order
 	return p, nil
 }

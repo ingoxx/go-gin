@@ -22,11 +22,12 @@ func SetupRouter() *http.Server {
 	router := gin.Default()
 	router.Static("/static", "../static")
 	// route.LoadHTMLGlob("../../templates")
-	router.Use(middleware.AllowCos(),
+	router.Use(
+		middleware.AllowCos(),
 		middleware.TokenVerify(),
 		middleware.PermsVerify(),
-		//middleware.ReqFrequencyLimit(),
-		//middleware.OperateRecord(),
+		middleware.ReqFrequencyLimit(),
+		middleware.OperateRecord(),
 	)
 
 	//加载路由配置

@@ -125,7 +125,7 @@ func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 
 	var primaryManagerIP string
 	var foundLeader bool
-
+	var restoreStatus bool
 	// 遍历所有 Swarm 节点
 	for _, node := range nodes {
 		ip := node.Status.Addr
@@ -153,9 +153,17 @@ func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 			chc.updateServerStatus(ip, 3, 300)
 		} else {
 			if clusterStatusInfo[status] == 100 {
+				restoreStatus = true
 				esg := fmt.Sprintf("节点'%s'发生故障, 故障信息信息: '%v', 集群id: '%s'", ip, node.Status.State, chc.cid)
 				log.Println(esg)
 				ddwarning.SendWarning(esg)
+			} else if clusterStatusInfo[status] == 200 {
+				if restoreStatus {
+					esg := fmt.Sprintf("节点'%s'已恢复, 当前状态: '%v', 集群id: '%s'", ip, node.Status.State, chc.cid)
+					log.Println(esg)
+					ddwarning.SendWarning(esg)
+					restoreStatus = false
+				}
 			}
 			chc.updateServerStatus(ip, clusterStatusInfo[role], clusterStatusInfo[status])
 
@@ -237,7 +245,7 @@ func Check(currentServerIp string) {
 		cli: cli,
 	}
 
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	for {
