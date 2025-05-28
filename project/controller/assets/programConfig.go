@@ -62,6 +62,7 @@ func NewProgramConfig() *ProgramConfig {
 			"重启java":      "javaReload",
 			"docker更新Log": "dockerUpdateLog",
 			"java更新Log":   "javaUpdateLog",
+			"rpc更新Log":    "rpcUpdateLog",
 		},
 	}
 }

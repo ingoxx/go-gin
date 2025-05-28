@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/gorilla/websocket"
 	pb "github.com/ingoxx/go-gin/project/command/command"
 	"github.com/ingoxx/go-gin/project/command/rpcConfig"
 	"github.com/ingoxx/go-gin/project/logger"
-	"github.com/gorilla/websocket"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"io"
@@ -123,9 +123,93 @@ func (rc *GrpcClient) CallSendProgramCmdMth() (err error) {
 		if err := rc.JavaUpdateLog(); err != nil {
 			return err
 		}
+	case "rpcUpdate":
+		if err := rc.RpcUpdate(); err != nil {
+			return err
+		}
+	case "rpcReload":
+		if err := rc.RpcReload(); err != nil {
+			return err
+		}
+	case "rpcUpdateLog":
+		if err := rc.RpcUpdateLog(); err != nil {
+			return err
+		}
 	default:
 		err = errors.New(fmt.Sprintf("method not found, errMsg: %s", err.Error()))
 		logger.Error(fmt.Sprintf("method not found, errMsg: %s", err.Error()))
+	}
+
+	return
+}
+
+func (rc *GrpcClient) RpcUpdate() (err error) {
+	stream, err := rc.sc.RpcUpdate(context.Background(), &pb.StreamRequest{Uuid: rc.Uuid})
+	if err != nil {
+		return
+	}
+
+	defer rc.RpcConn.Close()
+
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+
+		if rc.WsConn != nil {
+			if err = rc.WsConn.WriteMessage(1, []byte(fmt.Sprintf("%s\n", resp.Message))); err != nil {
+				return err
+			}
+		}
+	}
+
+	return
+}
+
+func (rc *GrpcClient) RpcReload() (err error) {
+	stream, err := rc.sc.RpcReload(context.Background(), &pb.StreamRequest{Uuid: rc.Uuid})
+	if err != nil {
+		return
+	}
+
+	defer rc.RpcConn.Close()
+
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+
+		if rc.WsConn != nil {
+			if err = rc.WsConn.WriteMessage(1, []byte(fmt.Sprintf("%s\n", resp.Message))); err != nil {
+				return err
+			}
+		}
+	}
+
+	return
+}
+
+func (rc *GrpcClient) RpcUpdateLog() (err error) {
+	stream, err := rc.sc.RpcUpdateLog(context.Background(), &pb.StreamRequest{Uuid: rc.Uuid})
+	if err != nil {
+		return
+	}
+
+	defer rc.RpcConn.Close()
+
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+
+		if rc.WsConn != nil {
+			if err = rc.WsConn.WriteMessage(1, []byte(fmt.Sprintf("%s\n", resp.Message))); err != nil {
+				return err
+			}
+		}
 	}
 
 	return
