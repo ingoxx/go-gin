@@ -155,11 +155,12 @@ func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 		} else {
 			if clusterStatusInfo[status] == 100 {
 				chc.cache[ip] = ip
-				esg := fmt.Sprintf("节点'%s'发生故障, 故障信息信息: '%v', 集群id: '%s'", ip, node.Status.State, chc.cid)
+				esg := fmt.Sprintf("节点'%v'发生故障, 故障信息信息: '%v', 集群id: '%s'", chc.cache, node.Status.State, chc.cid)
 				log.Println(esg)
 				ddwarning.SendWarning(esg)
 			} else if clusterStatusInfo[status] == 200 {
 				if chc.cache[ip] == ip {
+					fmt.Println("cache >>> ", chc.cache)
 					delete(chc.cache, ip)
 					esg := fmt.Sprintf("节点'%s'已恢复, 当前状态: '%v', 集群id: '%s'", ip, node.Status.State, chc.cid)
 					log.Println(esg)
