@@ -23,10 +23,11 @@ var clusterStatusInfo = map[string]uint{
 
 // ClusterHealthChecker 结构体
 type ClusterHealthChecker struct {
-	db  *sql.DB
-	cli *client.Client
-	cid string
-	ctx context.Context // cluster_id
+	db    *sql.DB
+	cli   *client.Client
+	ctx   context.Context // cluster_id
+	cid   string
+	cache map[string]string
 }
 
 func (chc *ClusterHealthChecker) checkClusterExists(managerIp string) bool {
@@ -125,7 +126,6 @@ func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 
 	var primaryManagerIP string
 	var foundLeader bool
-	var recordNodeStatus = make(map[string]string)
 
 	// 遍历所有 Swarm 节点
 	for _, node := range nodes {
@@ -154,13 +154,13 @@ func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 			chc.updateServerStatus(ip, 3, 300)
 		} else {
 			if clusterStatusInfo[status] == 100 {
-				recordNodeStatus["ip"] = ip
+				chc.cache[ip] = ip
 				esg := fmt.Sprintf("节点'%s'发生故障, 故障信息信息: '%v', 集群id: '%s'", ip, node.Status.State, chc.cid)
 				log.Println(esg)
 				ddwarning.SendWarning(esg)
 			} else if clusterStatusInfo[status] == 200 {
-				if recordNodeStatus["ip"] == ip {
-					recordNodeStatus["ip"] = "0.0.0.0"
+				if chc.cache[ip] == ip {
+					delete(chc.cache, ip)
 					esg := fmt.Sprintf("节点'%s'已恢复, 当前状态: '%v', 集群id: '%s'", ip, node.Status.State, chc.cid)
 					log.Println(esg)
 					ddwarning.SendWarning(esg)
@@ -240,9 +240,10 @@ func Check(currentServerIp string) {
 	defer db.Close()
 
 	c := ClusterHealthChecker{
-		ctx: context.Background(),
-		db:  db,
-		cli: cli,
+		ctx:   context.Background(),
+		db:    db,
+		cli:   cli,
+		cache: make(map[string]string),
 	}
 
 	ticker := time.NewTicker(30 * time.Second)
