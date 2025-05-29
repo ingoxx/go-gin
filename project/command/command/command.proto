@@ -21,9 +21,6 @@ service StreamUpdateProgramService {
   rpc JavaUpdate (StreamRequest) returns (stream StreamReply) {}
   rpc JavaReload (StreamRequest) returns (stream StreamReply) {}
   rpc JavaUpdateLog (StreamRequest) returns (stream StreamReply) {}
-  rpc RpcReload (StreamRequest) returns (stream StreamReply) {}
-  rpc RpcUpdate (StreamRequest) returns (stream StreamReply) {}
-  rpc RpcUpdateLog (StreamRequest) returns (stream StreamReply) {}
   rpc RunLinuxCmd (StreamRequest) returns (stream StreamReply) {}
 }
 

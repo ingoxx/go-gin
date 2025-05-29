@@ -121,9 +121,6 @@ const (
 	StreamUpdateProgramService_JavaUpdate_FullMethodName      = "/command.StreamUpdateProgramService/JavaUpdate"
 	StreamUpdateProgramService_JavaReload_FullMethodName      = "/command.StreamUpdateProgramService/JavaReload"
 	StreamUpdateProgramService_JavaUpdateLog_FullMethodName   = "/command.StreamUpdateProgramService/JavaUpdateLog"
-	StreamUpdateProgramService_RpcReload_FullMethodName       = "/command.StreamUpdateProgramService/RpcReload"
-	StreamUpdateProgramService_RpcUpdate_FullMethodName       = "/command.StreamUpdateProgramService/RpcUpdate"
-	StreamUpdateProgramService_RpcUpdateLog_FullMethodName    = "/command.StreamUpdateProgramService/RpcUpdateLog"
 	StreamUpdateProgramService_RunLinuxCmd_FullMethodName     = "/command.StreamUpdateProgramService/RunLinuxCmd"
 )
 
@@ -137,9 +134,6 @@ type StreamUpdateProgramServiceClient interface {
 	JavaUpdate(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error)
 	JavaReload(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error)
 	JavaUpdateLog(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error)
-	RpcReload(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error)
-	RpcUpdate(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error)
-	RpcUpdateLog(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error)
 	RunLinuxCmd(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error)
 }
 
@@ -265,66 +259,9 @@ func (c *streamUpdateProgramServiceClient) JavaUpdateLog(ctx context.Context, in
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type StreamUpdateProgramService_JavaUpdateLogClient = grpc.ServerStreamingClient[StreamReply]
 
-func (c *streamUpdateProgramServiceClient) RpcReload(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &StreamUpdateProgramService_ServiceDesc.Streams[6], StreamUpdateProgramService_RpcReload_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[StreamRequest, StreamReply]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type StreamUpdateProgramService_RpcReloadClient = grpc.ServerStreamingClient[StreamReply]
-
-func (c *streamUpdateProgramServiceClient) RpcUpdate(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &StreamUpdateProgramService_ServiceDesc.Streams[7], StreamUpdateProgramService_RpcUpdate_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[StreamRequest, StreamReply]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type StreamUpdateProgramService_RpcUpdateClient = grpc.ServerStreamingClient[StreamReply]
-
-func (c *streamUpdateProgramServiceClient) RpcUpdateLog(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &StreamUpdateProgramService_ServiceDesc.Streams[8], StreamUpdateProgramService_RpcUpdateLog_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[StreamRequest, StreamReply]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type StreamUpdateProgramService_RpcUpdateLogClient = grpc.ServerStreamingClient[StreamReply]
-
 func (c *streamUpdateProgramServiceClient) RunLinuxCmd(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamReply], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &StreamUpdateProgramService_ServiceDesc.Streams[9], StreamUpdateProgramService_RunLinuxCmd_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &StreamUpdateProgramService_ServiceDesc.Streams[6], StreamUpdateProgramService_RunLinuxCmd_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -351,9 +288,6 @@ type StreamUpdateProgramServiceServer interface {
 	JavaUpdate(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error
 	JavaReload(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error
 	JavaUpdateLog(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error
-	RpcReload(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error
-	RpcUpdate(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error
-	RpcUpdateLog(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error
 	RunLinuxCmd(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error
 	mustEmbedUnimplementedStreamUpdateProgramServiceServer()
 }
@@ -382,15 +316,6 @@ func (UnimplementedStreamUpdateProgramServiceServer) JavaReload(*StreamRequest, 
 }
 func (UnimplementedStreamUpdateProgramServiceServer) JavaUpdateLog(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error {
 	return status.Errorf(codes.Unimplemented, "method JavaUpdateLog not implemented")
-}
-func (UnimplementedStreamUpdateProgramServiceServer) RpcReload(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error {
-	return status.Errorf(codes.Unimplemented, "method RpcReload not implemented")
-}
-func (UnimplementedStreamUpdateProgramServiceServer) RpcUpdate(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error {
-	return status.Errorf(codes.Unimplemented, "method RpcUpdate not implemented")
-}
-func (UnimplementedStreamUpdateProgramServiceServer) RpcUpdateLog(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error {
-	return status.Errorf(codes.Unimplemented, "method RpcUpdateLog not implemented")
 }
 func (UnimplementedStreamUpdateProgramServiceServer) RunLinuxCmd(*StreamRequest, grpc.ServerStreamingServer[StreamReply]) error {
 	return status.Errorf(codes.Unimplemented, "method RunLinuxCmd not implemented")
@@ -483,39 +408,6 @@ func _StreamUpdateProgramService_JavaUpdateLog_Handler(srv interface{}, stream g
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type StreamUpdateProgramService_JavaUpdateLogServer = grpc.ServerStreamingServer[StreamReply]
 
-func _StreamUpdateProgramService_RpcReload_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(StreamRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(StreamUpdateProgramServiceServer).RpcReload(m, &grpc.GenericServerStream[StreamRequest, StreamReply]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type StreamUpdateProgramService_RpcReloadServer = grpc.ServerStreamingServer[StreamReply]
-
-func _StreamUpdateProgramService_RpcUpdate_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(StreamRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(StreamUpdateProgramServiceServer).RpcUpdate(m, &grpc.GenericServerStream[StreamRequest, StreamReply]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type StreamUpdateProgramService_RpcUpdateServer = grpc.ServerStreamingServer[StreamReply]
-
-func _StreamUpdateProgramService_RpcUpdateLog_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(StreamRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(StreamUpdateProgramServiceServer).RpcUpdateLog(m, &grpc.GenericServerStream[StreamRequest, StreamReply]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type StreamUpdateProgramService_RpcUpdateLogServer = grpc.ServerStreamingServer[StreamReply]
-
 func _StreamUpdateProgramService_RunLinuxCmd_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(StreamRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -563,21 +455,6 @@ var StreamUpdateProgramService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "JavaUpdateLog",
 			Handler:       _StreamUpdateProgramService_JavaUpdateLog_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "RpcReload",
-			Handler:       _StreamUpdateProgramService_RpcReload_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "RpcUpdate",
-			Handler:       _StreamUpdateProgramService_RpcUpdate_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "RpcUpdateLog",
-			Handler:       _StreamUpdateProgramService_RpcUpdateLog_Handler,
 			ServerStreams: true,
 		},
 		{

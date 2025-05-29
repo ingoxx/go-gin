@@ -33,8 +33,8 @@ func InitPoolMysql() (err error) {
 	}
 
 	sqlDB, err := DB.DB()
-	sqlDB.SetMaxIdleConns(80)
-	sqlDB.SetMaxOpenConns(500)
+	sqlDB.SetMaxIdleConns(20)
+	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 	if err != nil {
 		return

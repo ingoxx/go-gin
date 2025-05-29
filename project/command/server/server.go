@@ -12,15 +12,14 @@ import (
 	"github.com/ingoxx/go-gin/project/tools/dockerSwarmApi"
 	"github.com/ingoxx/go-gin/project/tools/dockerSwarmStatusCheck"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"io"
 	"log"
 	"net"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
-	"syscall"
-	"time"
 )
 
 var (
@@ -35,37 +34,15 @@ type server struct {
 }
 
 type runScriptData struct {
-	req          *pb.StreamRequest
-	systemLog    *pb.StreamSystemLogRequest
-	stream       pb.StreamUpdateProgramService_DockerUpdateServer
-	program      string
-	programLog   string
-	operatorType int32
-}
-
-func (s *server) RpcReload(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_RpcReloadServer) (err error) {
-	log.Println("received RpcReload call")
-
-	data := runScriptData{
-		req:          req,
-		stream:       stream,
-		program:      script.RpcUpdateScript,
-		programLog:   script.RpcUpdateLog,
-		operatorType: script.RpcReload,
-	}
-
-	if err = s.scriptOutPut(data); err != nil {
-		if err = data.stream.Send(&pb.StreamReply{Message: fmt.Sprintf("fail to run DockerUpdate, errMsg: %s\n", err.Error())}); err != nil {
-			log.Printf("fail to run send msg, errMsg: %s\n", err.Error())
-		}
-		return
-	}
-
-	return
+	req        *pb.StreamRequest
+	systemLog  *pb.StreamSystemLogRequest
+	stream     pb.StreamUpdateProgramService_DockerUpdateServer
+	program    string
+	programLog string
 }
 
 func (s *server) DockerUpdate(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_DockerUpdateServer) (err error) {
-	log.Println("received DockerUpdate")
+	log.Println("received DockerUpdate call")
 
 	data := runScriptData{
 		req:        req,
@@ -85,7 +62,7 @@ func (s *server) DockerUpdate(req *pb.StreamRequest, stream pb.StreamUpdateProgr
 }
 
 func (s *server) DockerUpdateLog(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_DockerUpdateLogServer) (err error) {
-	log.Println("received DockerUpdateLog")
+	log.Println("received DockerUpdateLog call")
 
 	cmd := exec.Command("more", script.DockerUpdateLog, req.GetUuid())
 	stdout, err := cmd.StdoutPipe()
@@ -112,7 +89,7 @@ func (s *server) DockerUpdateLog(req *pb.StreamRequest, stream pb.StreamUpdatePr
 }
 
 func (s *server) JavaUpdateLog(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_JavaUpdateLogServer) (err error) {
-	log.Println("received JavaUpdateLog")
+	log.Println("received JavaUpdateLog call")
 
 	cmd := exec.Command("more", script.JavaUpdateLog, req.GetUuid())
 	stdout, err := cmd.StdoutPipe()
@@ -139,7 +116,7 @@ func (s *server) JavaUpdateLog(req *pb.StreamRequest, stream pb.StreamUpdateProg
 }
 
 func (s *server) JavaUpdate(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_JavaUpdateServer) (err error) {
-	log.Println("received JavaUpdate")
+	log.Println("received JavaUpdate call")
 
 	data := runScriptData{
 		req:        req,
@@ -166,13 +143,7 @@ func (s *server) scriptOutPut(data runScriptData) (err error) {
 	var makeCmd string
 	if data.req != nil {
 		if data.req.GetUuid() != "" {
-			if data.operatorType == script.RpcUpdate || data.operatorType == script.RpcReload {
-				makeCmd = fmt.Sprintf("bash %s %s %s | tee %s", data.program, "reload", data.req.GetUuid(), data.programLog)
-				fmt.Println("cmd >>> ", makeCmd)
-			} else {
-				makeCmd = fmt.Sprintf("bash %s %s | tee %s", data.program, data.req.GetUuid(), data.programLog)
-			}
-			//makeCmd = fmt.Sprintf("bash %s %s | tee %s", data.program, data.req.GetUuid(), data.programLog)
+			makeCmd = fmt.Sprintf("bash %s %s | tee %s", data.program, data.req.GetUuid(), data.programLog)
 		} else if data.req.GetCmd() != "" {
 			makeCmd = fmt.Sprintf("bash %s \"%s\" | tee %s", data.program, data.req.GetCmd(), data.programLog)
 		}
@@ -236,7 +207,7 @@ func (s *server) JavaReload(req *pb.StreamRequest, stream pb.StreamUpdateProgram
 }
 
 func (s *server) RunLinuxCmd(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_DockerUpdateServer) (err error) {
-	log.Println("received RunLinuxCmd")
+	log.Println("received RunLinuxCmd call")
 
 	data := runScriptData{
 		req:        req,
@@ -256,7 +227,7 @@ func (s *server) RunLinuxCmd(req *pb.StreamRequest, stream pb.StreamUpdateProgra
 }
 
 func (s *server) CheckSystemLog(req *pb.StreamSystemLogRequest, stream pb.StreamCheckSystemLogService_CheckSystemLogServer) (err error) {
-	log.Println("received CheckSystemLog")
+	log.Println("received CheckSystemLog call")
 
 	data := runScriptData{
 		systemLog:  req,
@@ -276,7 +247,7 @@ func (s *server) CheckSystemLog(req *pb.StreamSystemLogRequest, stream pb.Stream
 }
 
 func (s *server) ClusterInit(req *pb.StreamClusterOperateReq, stream pb.ClusterOperateService_ClusterInitServer) (err error) {
-	log.Println("received ClusterInit")
+	log.Println("received ClusterInit call")
 
 	cid, wToken, mToken, err := dockerSwarmApi.NewDockerSwarmOp(req.GetMasterIp(), "", "", "", context.Background()).CreateSwarm()
 	if err != nil {
@@ -298,7 +269,7 @@ func (s *server) ClusterInit(req *pb.StreamClusterOperateReq, stream pb.ClusterO
 
 // StartClusterMonitor 启动监控
 func (s *server) StartClusterMonitor(req *pb.StreamClusterOperateReq, stream pb.ClusterOperateService_StartClusterMonitorServer) (err error) {
-	log.Println("received StartClusterMonitor")
+	log.Println("received StartClusterMonitor call")
 
 	// 启动集群的健康监测脚本
 	//go dockerSwarmStatusCheck.Check(req.ClusterID)
@@ -311,7 +282,7 @@ func (s *server) StartClusterMonitor(req *pb.StreamClusterOperateReq, stream pb.
 }
 
 func (s *server) ClusterJoinWork(req *pb.StreamClusterOperateReq, stream pb.ClusterOperateService_ClusterJoinWorkServer) (err error) {
-	log.Println("received ClusterJoinWork")
+	log.Println("received ClusterJoinWork call")
 
 	if err := dockerSwarmApi.NewDockerSwarmOp(req.GetMasterIp(), req.GetNodeIp(), req.GetWToken(), "", context.Background()).JoinWorkSwarm(); err != nil {
 		log.Println(fmt.Sprintf("faied to join work swarm, errMsg: %s\n", err.Error()))
@@ -330,7 +301,7 @@ func (s *server) ClusterJoinWork(req *pb.StreamClusterOperateReq, stream pb.Clus
 }
 
 func (s *server) ClusterJoinMaster(req *pb.StreamClusterOperateReq, stream pb.ClusterOperateService_ClusterJoinMasterServer) (err error) {
-	log.Println("received ClusterJoinMaster")
+	log.Println("received ClusterJoinMaster call")
 
 	if err := dockerSwarmApi.NewDockerSwarmOp(req.GetMasterIp(), req.GetNodeIp(), "", req.GetMToken(), context.Background()).JoinMasterSwarm(); err != nil {
 		log.Println(fmt.Sprintf("faied to join master swarm, errMsg: %s\n", err.Error()))
@@ -349,7 +320,7 @@ func (s *server) ClusterJoinMaster(req *pb.StreamClusterOperateReq, stream pb.Cl
 }
 
 func (s *server) ClusterLeaveSwarm(req *pb.StreamClusterOperateReq, stream pb.ClusterOperateService_ClusterLeaveSwarmServer) (err error) {
-	log.Println("received ClusterLeaveSwarm")
+	log.Println("received ClusterLeaveSwarm call")
 
 	if err := dockerSwarmApi.NewDockerSwarmOp("", "", "", "", context.Background()).LeaveSwarm(); err != nil {
 		log.Println(fmt.Sprintf("faied to leave swarm, errMsg: %s\n", err.Error()))
@@ -391,6 +362,10 @@ func (s *server) ProcessMsg(stream pb.FileTransferService_SendFileServer) (err e
 			break
 		}
 
+		if err != nil {
+			return status.Errorf(codes.Internal, "receive file error: %v", err)
+		}
+
 		if file == "" {
 			file = filepath.Join(savePath, resp.GetName())
 		}
@@ -430,6 +405,8 @@ func (s *server) ProcessMsg(stream pb.FileTransferService_SendFileServer) (err e
 		s.send(err.Error(), stream)
 		return
 	}
+
+	log.Printf("%s md5:  %s\n", file, s.fileMd5(file))
 
 	msg = fmt.Sprintf("%s|%s", filepath.Base(file), s.fileMd5(file))
 	s.send(msg, stream)
@@ -483,125 +460,40 @@ func (s *server) verify(req *pb.StreamRequest, stream pb.StreamUpdateProgramServ
 func main() {
 	if len(os.Args) < 2 {
 		log.Println("必须提供当前服务器的外网IP地址")
+		os.Exit(1) // 参数不正确时退出程序，返回错误代码 1
+	}
+
+	ipAddress := os.Args[1]
+
+	if ipAddress == "" {
+		log.Println("IP地址不能为空")
 		os.Exit(1)
 	}
-	ipAddress := os.Args[1]
-	if net.ParseIP(ipAddress) == nil {
+
+	parsedIP := net.ParseIP(ipAddress)
+	if parsedIP == nil {
 		log.Println("错误: 无效的 IP 地址格式")
 		os.Exit(1)
 	}
 
-	var listener net.Listener
-	var err error
-
-	// 判断是否继承监听 socket（热重启子进程）
-	if os.Getenv("GRACEFUL_RESTART") == "true" {
-		file := os.NewFile(uintptr(3), "listener") // fd=3 是 ExtraFiles[0]
-		listener, err = net.FileListener(file)
-		if err != nil {
-			log.Fatalf("继承 socket 失败: %v", err)
-		}
-	} else {
-		listener, err = net.Listen("tcp", ":12306")
-		if err != nil {
-			log.Fatalf("监听端口失败: %v", err)
-		}
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 12306))
+	if err != nil {
+		log.Fatalln(fmt.Sprintf("failed to listen 12306, errMsg: %v", err))
 	}
 
-	// 初始化 Redis
-	if err := redis.InitPoolRdb(); err != nil {
-		log.Fatalf("Redis 初始化失败: %v", err)
+	if err = redis.InitPoolRdb(); err != nil {
+		log.Fatalln(fmt.Sprintf("failed to connect redis, errMsg: %s", err.Error()))
 	}
 
-	// 注册 gRPC 服务
 	s := grpc.NewServer()
 	pb.RegisterStreamUpdateProgramServiceServer(s, &server{})
 	pb.RegisterFileTransferServiceServer(s, &server{})
 	pb.RegisterStreamCheckSystemLogServiceServer(s, &server{})
 	pb.RegisterClusterOperateServiceServer(s, &server{})
-
-	// 后台任务
 	go dockerSwarmStatusCheck.Check(ipAddress)
+	log.Printf("server listening at %v", lis.Addr())
 
-	// 处理信号
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGUSR2)
-
-	go func() {
-		for sig := range sigChan {
-			switch sig {
-			case syscall.SIGUSR2:
-				log.Println("接收到 SIGUSR2，启动热重载...")
-				tcpListener := listener.(*net.TCPListener)
-				file, err := tcpListener.File()
-				if err != nil {
-					log.Fatalf("获取 listener 文件失败: %v", err)
-				}
-				env := append(os.Environ(), "GRACEFUL_RESTART=true")
-				procAttr := &os.ProcAttr{
-					Files: []*os.File{os.Stdin, os.Stdout, os.Stderr, file},
-					Env:   env,
-				}
-				bin, _ := os.Executable()
-				args := append([]string{bin}, os.Args[1:]...)
-				process, err := os.StartProcess(bin, args, procAttr)
-				if err != nil {
-					log.Fatalf("启动子进程失败: %v", err)
-				}
-				log.Printf("子进程启动成功 (PID=%d)，等待切换...", process.Pid)
-				time.Sleep(2 * time.Second)
-				s.GracefulStop()
-				os.Exit(0)
-			case syscall.SIGTERM, syscall.SIGINT:
-				s.GracefulStop()
-				os.Exit(0)
-			}
-		}
-	}()
-
-	log.Printf("gRPC 服务监听中：%v", listener.Addr())
-	if err := s.Serve(listener); err != nil {
-		log.Fatalf("gRPC Serve 失败: %v", err)
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
 	}
 }
-
-//func main() {
-//	if len(os.Args) < 2 {
-//		log.Println("必须提供当前服务器的外网IP地址")
-//		os.Exit(1) // 参数不正确时退出程序，返回错误代码 1
-//	}
-//
-//	ipAddress := os.Args[1]
-//
-//	if ipAddress == "" {
-//		log.Println("IP地址不能为空")
-//		os.Exit(1)
-//	}
-//
-//	parsedIP := net.ParseIP(ipAddress)
-//	if parsedIP == nil {
-//		log.Println("错误: 无效的 IP 地址格式")
-//		os.Exit(1)
-//	}
-//
-//	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 12306))
-//	if err != nil {
-//		log.Fatalln(fmt.Sprintf("failed to listen 12306, errMsg: %v", err))
-//	}
-//
-//	if err = redis.InitPoolRdb(); err != nil {
-//		log.Fatalln(fmt.Sprintf("failed to connect redis, errMsg: %s", err.Error()))
-//	}
-//
-//	s := grpc.NewServer()
-//	pb.RegisterStreamUpdateProgramServiceServer(s, &server{})
-//	pb.RegisterFileTransferServiceServer(s, &server{})
-//	pb.RegisterStreamCheckSystemLogServiceServer(s, &server{})
-//	pb.RegisterClusterOperateServiceServer(s, &server{})
-//	go dockerSwarmStatusCheck.Check(ipAddress)
-//	log.Printf("server listening at %v", lis.Addr())
-//
-//	if err := s.Serve(lis); err != nil {
-//		log.Fatalf("failed to serve: %v", err)
-//	}
-//}
