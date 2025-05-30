@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/ingoxx/go-gin/project/dao"
 	"github.com/ingoxx/go-gin/project/service"
 	"github.com/ingoxx/go-gin/project/utils/encryption"
@@ -14,14 +15,14 @@ import (
 type User struct {
 	//gorm.Model
 	ID        uint           `json:"id" gorm:"primarykey"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
+	CreatedAt time.Time      `json:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
+	UpdatedAt time.Time      `json:"updated_at" gorm:"default:CURRENT_TIMESTAMP"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 	Name      string         `json:"name" gorm:"unique;not null"`
 	Email     string         `json:"email" gorm:"unique;not null"`
 	Hobby     string         `json:"-" gorm:"default:'basketball'"`
 	Tel       int            `json:"tel" gorm:"default:168888"`
-	Password  string         `json:"password" gorm:"not null"`
+	Password  string         `json:"password,omitempty" gorm:"not null"`
 	Roles     []Role         `json:"roles" gorm:"many2many:role_users"`
 	Isopenga  uint           `json:"isopenga" gorm:"default:1;comment:1-打开MFA,2-关闭MFA"`
 	Isopenqr  uint           `json:"isopenqr" gorm:"default:1;comment:1-打开重置MFA,2-关闭重置MFA"`
@@ -86,6 +87,44 @@ func (u *User) DeleteUser(uid []uint) (err error) {
 	return tx.Commit().Error
 }
 
+func (u *User) UpdateUserPwd(ud User, rid uint, uid uint) error {
+	var user = new(User)
+	tx := dao.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := dao.DB.Where("id = ?", uid).First(user).Error; err != nil {
+		return err
+	}
+
+	if ud.Password != "" {
+		enData, err := encryption.NewDataEncryption(ud.Name, ud.Password).EncryptionPwd()
+		if err != nil {
+			return err
+		}
+		user.Password = enData
+	}
+
+	if err := tx.Model(&User{}).Where("id = ?", user.ID).Updates(user).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	b, err := json.Marshal(user)
+	if err != nil {
+		return err
+	}
+
+	if err := dao.Rds.SetData(user.Name+"-rc", b); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (u *User) UpdateUser(ud User, rid uint, uid uint) (err error) {
 	var user User
 	var role Role
@@ -107,7 +146,7 @@ func (u *User) UpdateUser(ud User, rid uint, uid uint) (err error) {
 		ud.Password = enData
 	}
 
-	if err = dao.DB.Where("id = ?", uid).Find(&user).Error; err != nil {
+	if err = dao.DB.Where("id = ?", uid).First(&user).Error; err != nil {
 		return
 	}
 
@@ -116,17 +155,31 @@ func (u *User) UpdateUser(ud User, rid uint, uid uint) (err error) {
 		return err
 	}
 
-	roles = append(roles, role)
-
-	if err = tx.Model(&user).Association("Roles").Replace(roles); err != nil {
-		tx.Rollback()
-		return
+	if ud.Password == "" {
+		ud.Password = user.Password
 	}
 
 	if err = tx.Model(&user).Updates(&ud).Error; err != nil {
 		tx.Rollback()
 		return
 	}
+
+	roles = append(roles, role)
+
+	// 先清空再新增
+	if err := tx.Model(&user).Association("Roles").Clear(); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Model(&user).Association("Roles").Append(roles); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	//if err = tx.Model(&user).Association("Roles").Replace(roles); err != nil {
+	//	tx.Rollback()
+	//	return
+	//}
 
 	b, err := json.Marshal(ud)
 	if err != nil {
@@ -165,7 +218,7 @@ func (u *User) GetUserByName(name string) (ud User, err error) {
 
 // GetUserByPaginate 单表中过滤出row
 func (u *User) GetUserByPaginate(page int, user User) (ul *service.Paginate, err error) {
-	var us []User
+	var us = make([]User, 0, 20)
 	sql := dao.DB.Omit("Password").Model(u).Where(&user).Preload("Roles")
 	pg := service.NewPaginate()
 	ul, err = pg.GetPageData(page, sql)
@@ -176,6 +229,8 @@ func (u *User) GetUserByPaginate(page int, user User) (ul *service.Paginate, err
 	if err = ul.Gd.Find(&us).Error; err != nil {
 		return
 	}
+
+	fmt.Println("users >>> ", us)
 
 	ul.ModelSlice = us
 

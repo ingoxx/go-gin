@@ -9,6 +9,7 @@ import (
 
 // UserListQuery 这里是存放user这个app的复杂逻辑代码
 type UserListQuery struct {
+	ID       uint              `json:"id"`
 	CurPage  int               `json:"page" form:"page"  validate:"min=1" binding:"required"`
 	Name     string            `json:"name" form:"name"`
 	Email    string            `json:"email" form:"email"`

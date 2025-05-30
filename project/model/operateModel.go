@@ -331,7 +331,7 @@ func (o *OperateLogModel) findUserLoginNum() ([]map[string]interface{}, error) {
 	var dataList = make([]map[string]interface{}, 0)
 	rows, err := dao.DB.Raw(`
 		select operator, count(1) as user_login_num from operate_log_models 
-		where url like '%/login%' 
+		where url like '%/login%' and operator in (select name from users) 
 		GROUP BY operator LIMIT 5;
 	`).Rows()
 

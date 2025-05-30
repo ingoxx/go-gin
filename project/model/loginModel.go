@@ -17,7 +17,7 @@ type Login struct {
 	Isopenga uint   `json:"isopenga"`
 	Isopenqr uint   `json:"isopenqr"`
 	QrUrl    string `json:"qrurl"`
-	Password string `json:"-"`
+	Password string `json:"password,omitempty"`
 	Token    string `json:"token"`
 	MfaApp   uint   `json:"mfa_app"`
 }
@@ -117,7 +117,6 @@ func (l *Login) Authenticate(u, p string) (err error) {
 		}
 		return fmt.Errorf("用户%s不存在", u)
 	}
-
 	if err := encryption.NewDataEncryption(u, p).DecryptionPwd(l.Password); err != nil {
 		if err := dao.Rds.RecordLoginFailedNum(u + "-lm"); err != nil {
 			return err
@@ -132,7 +131,7 @@ func (l *Login) Authenticate(u, p string) (err error) {
 func (l *Login) IsOpenGoogleAuth(u string) (b bool, err error) {
 	var ui User
 	gas := service.NewGoogleAuthenticator("")
-	if err = dao.DB.Select("isopenga, isopenqr").Where("name = ?", u).Find(&ui).Error; err != nil {
+	if err = dao.DB.Select("isopenga, isopenqr").Where("name = ?", u).First(&ui).Error; err != nil {
 		return
 	}
 
@@ -155,6 +154,7 @@ func (l *Login) IsOpenGoogleAuth(u string) (b bool, err error) {
 }
 
 func (l *Login) CloseGoogleAuthQr(u string) (err error) {
+	var user User
 	tx := dao.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -170,6 +170,19 @@ func (l *Login) CloseGoogleAuthQr(u string) (err error) {
 	if err = tx.Model(&User{}).Where("name = ?", u).Update("mfa_app", 2).Error; err != nil {
 		tx.Rollback()
 		return
+	}
+
+	if err = tx.Where("name = ?", u).First(&user).Error; err != nil {
+		return
+	}
+
+	b, err := json.Marshal(&user)
+	if err != nil {
+		return err
+	}
+
+	if err := dao.Rds.SetData(u+"-rc", b); err != nil {
+		return err
 	}
 
 	return tx.Commit().Error

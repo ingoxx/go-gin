@@ -30,9 +30,9 @@ type CreateUserForm struct {
 
 type UpdateUserForm struct {
 	Name       string `json:"name" form:"name"`
-	Uid        uint   `json:"uid" form:"uid" binding:"required"`
-	Password   string `json:"password" form:"password"`
-	RePassword string `json:"rePassword" form:"rePassword"  validate:"eqfield=Password"`
+	ID         uint   `json:"id" form:"id" binding:"required"`
+	Password   string `json:"password,omitempty" form:"password"`
+	RePassword string `json:"rePassword,omitempty" form:"rePassword"  validate:"eqfield=Password"`
 	Rid        uint   `json:"rid" form:"rid" binding:"required"`
 	Isopenga   uint   `json:"isopenga" form:"isopenga"`
 	Isopenqr   uint   `json:"isopenqr" form:"isopenqr"`
@@ -177,7 +177,7 @@ func UpdateUser(ctx *gin.Context) {
 		return
 	}
 
-	if err := u.UpdateUser(u, ud.Rid, ud.Uid); err != nil {
+	if err := u.UpdateUser(u, ud.Rid, ud.ID); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": fmt.Sprintf("更新%v失败, errMsg: %s", ud.Name, err.Error()),
 			"code":    10004,
@@ -277,7 +277,7 @@ func UpdateUserPwd(ctx *gin.Context) {
 		return
 	}
 
-	if err := u.UpdateUser(u, ud.Rid, ud.Uid); err != nil {
+	if err := u.UpdateUserPwd(u, ud.Rid, ud.Uid); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": fmt.Sprintf("更新%v密码失败, errMsg: %s", ud.Name, err.Error()),
 			"code":    10004,
