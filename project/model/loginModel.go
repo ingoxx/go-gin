@@ -190,8 +190,8 @@ func (l *Login) CloseGoogleAuthQr(u string) (err error) {
 
 func (l *Login) FillData(user string) (err error) {
 	data, err := dao.Rds.GetData(user + "-rc")
-	if err != nil {
-		return err
+	if err != nil || len(data) == 0 {
+		return fmt.Errorf("用户%s不存在", user)
 	}
 
 	var us = new(User)

@@ -2,7 +2,6 @@ package model
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/ingoxx/go-gin/project/dao"
 	"github.com/ingoxx/go-gin/project/service"
 	"github.com/ingoxx/go-gin/project/utils/encryption"
@@ -89,12 +88,6 @@ func (u *User) DeleteUser(uid []uint) (err error) {
 
 func (u *User) UpdateUserPwd(ud User, rid uint, uid uint) error {
 	var user = new(User)
-	tx := dao.DB.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
 
 	if err := dao.DB.Where("id = ?", uid).First(user).Error; err != nil {
 		return err
@@ -108,8 +101,7 @@ func (u *User) UpdateUserPwd(ud User, rid uint, uid uint) error {
 		user.Password = enData
 	}
 
-	if err := tx.Model(&User{}).Where("id = ?", user.ID).Updates(user).Error; err != nil {
-		tx.Rollback()
+	if err := dao.DB.Model(&User{}).Where("id = ?", user.ID).Updates(user).Error; err != nil {
 		return err
 	}
 
@@ -129,13 +121,6 @@ func (u *User) UpdateUser(ud User, rid uint, uid uint) (err error) {
 	var user User
 	var role Role
 	var roles []Role
-
-	tx := dao.DB.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
 
 	if ud.Password != "" {
 		enData, err := encryption.NewDataEncryption(ud.Name, ud.Password).EncryptionPwd()
@@ -159,27 +144,19 @@ func (u *User) UpdateUser(ud User, rid uint, uid uint) (err error) {
 		ud.Password = user.Password
 	}
 
-	if err = tx.Model(&user).Updates(&ud).Error; err != nil {
-		tx.Rollback()
+	if err = dao.DB.Model(&user).Updates(&ud).Error; err != nil {
 		return
 	}
 
 	roles = append(roles, role)
 
 	// 先清空再新增
-	if err := tx.Model(&user).Association("Roles").Clear(); err != nil {
-		tx.Rollback()
+	if err := dao.DB.Model(&user).Association("Roles").Clear(); err != nil {
 		return err
 	}
-	if err := tx.Model(&user).Association("Roles").Append(roles); err != nil {
-		tx.Rollback()
+	if err := dao.DB.Model(&user).Association("Roles").Append(roles); err != nil {
 		return err
 	}
-
-	//if err = tx.Model(&user).Association("Roles").Replace(roles); err != nil {
-	//	tx.Rollback()
-	//	return
-	//}
 
 	b, err := json.Marshal(ud)
 	if err != nil {
@@ -190,7 +167,7 @@ func (u *User) UpdateUser(ud User, rid uint, uid uint) (err error) {
 		return err
 	}
 
-	return tx.Commit().Error
+	return nil
 }
 
 func (u *User) GetUserNameById(uid []uint) (us []string, err error) {
@@ -229,8 +206,6 @@ func (u *User) GetUserByPaginate(page int, user User) (ul *service.Paginate, err
 	if err = ul.Gd.Find(&us).Error; err != nil {
 		return
 	}
-
-	fmt.Println("users >>> ", us)
 
 	ul.ModelSlice = us
 
