@@ -10,6 +10,7 @@ import (
 
 type Permission struct {
 	gorm.Model
+	Label    string `json:"label" gorm:"default pid"`
 	Path     string `json:"path" gorm:"not null"`
 	Title    string `json:"title" gorm:"not null"`
 	Hidden   uint   `json:"hidden" gorm:"default:1;comment:'1是可见,2是隐藏'"`

@@ -257,7 +257,7 @@ func GetRolePerms(ctx *gin.Context) {
 	if err := ctx.ShouldBindQuery(&up); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
-			"code":    50014,
+			"code":    10001,
 		})
 		return
 	}
@@ -266,29 +266,12 @@ func GetRolePerms(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
-			"code":    50015,
+			"code":    10002,
 		})
 		return
 	}
-
-	//var fData []role.Menu
-	//if len(data) != 0 {
-	//	fData = role.FormatUserPerms(data, 0)
-	//	for _, v := range data {
-	//		pidList = append(pidList, v.ID)
-	//	}
-	//} else {
-	//	fData = []role.Menu{}
-	//}
 
 	fData := r.FormatUserPerms(data, 0)
-	if len(fData) == 0 {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": "当前用户还未授权, 请联系管理员",
-			"code":    10013,
-		})
-		return
-	}
 
 	for _, v := range data {
 		pidList = append(pidList, v.ID)
@@ -313,23 +296,14 @@ func GetAllFormatPerms(ctx *gin.Context) {
 		return
 	}
 
-	//var fdata []role.Menu
-	//
-	//if len(data) != 0 {
-	//	fdata = role.FormatUserPerms(data, 0)
-	//
-	//} else {
-	//	fdata = []role.Menu{}
+	fData := r.FormatUserPerms(data, 0)
+	//if len(fData) == 0 {
+	//	ctx.JSON(http.StatusOK, gin.H{
+	//		"message": "当前用户还未授权, 请联系管理员",
+	//		"code":    10013,
+	//	})
+	//	return
 	//}
-
-	fData := role.FormatUserPerms(data, 0)
-	if len(fData) == 0 {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": "当前用户还未授权, 请联系管理员",
-			"code":    10013,
-		})
-		return
-	}
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"data":    fData,

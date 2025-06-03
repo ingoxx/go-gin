@@ -4,8 +4,8 @@ import (
 	"github.com/ingoxx/go-gin/project/dao"
 	"github.com/ingoxx/go-gin/project/errors"
 	"github.com/ingoxx/go-gin/project/service"
-
 	"gorm.io/gorm"
+	"strconv"
 )
 
 type Role struct {
@@ -233,17 +233,20 @@ func (rl *Role) GetAllFormatPerms() (p []Permission, err error) {
 func (rl *Role) FormatUserPerms(perms []Permission, pid uint) []*Menu {
 	menuMap := make(map[uint]*Menu)
 	for _, perm := range perms {
+		perm.Label = strconv.Itoa(int(perm.ID)) + "-" + perm.Title
 		menuMap[perm.ID] = &Menu{Permission: perm, Children: []*Menu{}}
 	}
 
 	var roots []*Menu
 	// 第二次遍历，把节点正确地添加到其父节点的 Children 里
 	for _, menu := range menuMap {
+		menu.Permission.Label = strconv.Itoa(int(menu.ID)) + "-" + menu.Permission.Title
 		if menu.ParentId == pid {
 			// 父 ID 为 0，说明是根节点，加入 roots
 			roots = append(roots, menu)
 		} else if parent, exists := menuMap[menu.ParentId]; exists {
 			// 找到父节点，加入其 Children
+
 			parent.Children = append(parent.Children, menu)
 		} else {
 			// 父 ID 不为 0，但在 map 里找不到对应的父级，说明数据不完整
