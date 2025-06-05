@@ -58,6 +58,9 @@ func NewRedisDb(pool *redis.Client, md map[string]Md) *RedisDb {
 
 // ForbiddenLogin 60s内只要累计超过三次登陆失败就限制登陆
 func (r *RedisDb) ForbiddenLogin(key string) (err error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	val, err := r.HGetAllKey(key)
 	if err != nil {
 		return

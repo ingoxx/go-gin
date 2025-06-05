@@ -80,9 +80,7 @@ func (rc *GrpcClient) CallSystemLogMth(log, start, end, field string) (err error
 }
 
 func (rc *GrpcClient) RunLinuxCmd(wg *sync.WaitGroup, limit chan struct{}, output chan map[string][]string) (err error) {
-
 	defer wg.Done()
-
 	var res = make(map[string][]string)
 	stream, err := rc.sc.RunLinuxCmd(context.Background(), &pb.StreamRequest{Cmd: rc.Cmd, Ip: rc.Ip})
 	if err != nil {

@@ -95,6 +95,7 @@ func (ws *Ws) Run() (err error) {
 	return
 }
 
+// AcpLinuxCmd 批量命令执行
 func (ws *Ws) AcpLinuxCmd() (err error) {
 	for _, ip := range ws.Ip {
 		ws.wg.Add(1)
@@ -197,6 +198,7 @@ func (ws *Ws) AcpProgramCmd() (err error) {
 	return
 }
 
+// AcpSystemLog 服务器系统日志查询
 func (ws *Ws) AcpSystemLog() error {
 	for _, ip := range ws.Ip {
 		server := fmt.Sprintf("%s:12306", ip)

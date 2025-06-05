@@ -137,23 +137,13 @@ func ListController2(ctx *gin.Context) {
 		return
 	}
 
-	//clusterData, err := alc.GetAllClusterData()
-	//if err != nil {
-	//	ctx.JSON(http.StatusOK, gin.H{
-	//		"message": err.Error(),
-	//		"code":    10002,
-	//	})
-	//	return
-	//}
-
 	ctx.JSON(http.StatusOK, gin.H{
 		"data":     data,
 		"total":    total,
 		"pageSize": 10,
-		//"clusters": clusterData,
-		"config":  NewProgramConfig(),
-		"code":    10000,
-		"message": "ok",
+		"config":   NewProgramConfig(),
+		"code":     10000,
+		"message":  "ok",
 	})
 }
 
