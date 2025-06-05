@@ -48,7 +48,7 @@ func (s *server) DockerUpdate(req *pb.StreamRequest, stream pb.StreamUpdateProgr
 		req:        req,
 		stream:     stream,
 		program:    script.DockerUpdateScript,
-		programLog: script.DockerUpdateLog,
+		programLog: fmt.Sprintf("%s/%s_%s.log", script.LogPath, req.GetIp(), req.GetUuid()),
 	}
 
 	if err = s.scriptOutPut(data); err != nil {
@@ -64,7 +64,7 @@ func (s *server) DockerUpdate(req *pb.StreamRequest, stream pb.StreamUpdateProgr
 func (s *server) DockerUpdateLog(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_DockerUpdateLogServer) (err error) {
 	log.Println("received DockerUpdateLog call")
 
-	cmd := exec.Command("more", script.DockerUpdateLog, req.GetUuid())
+	cmd := exec.Command("more", fmt.Sprintf("%s/%s_%s.log", script.LogPath, req.GetIp(), req.GetUuid()))
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return
@@ -91,7 +91,7 @@ func (s *server) DockerUpdateLog(req *pb.StreamRequest, stream pb.StreamUpdatePr
 func (s *server) JavaUpdateLog(req *pb.StreamRequest, stream pb.StreamUpdateProgramService_JavaUpdateLogServer) (err error) {
 	log.Println("received JavaUpdateLog call")
 
-	cmd := exec.Command("more", script.JavaUpdateLog, req.GetUuid())
+	cmd := exec.Command("more", fmt.Sprintf("%s/%s_%s.log", script.LogPath, req.GetIp(), req.GetUuid()))
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return
@@ -122,7 +122,7 @@ func (s *server) JavaUpdate(req *pb.StreamRequest, stream pb.StreamUpdateProgram
 		req:        req,
 		stream:     stream,
 		program:    script.JavaUpdateScript,
-		programLog: script.JavaUpdateLog,
+		programLog: fmt.Sprintf("%s/%s_%s.log", script.LogPath, req.GetIp(), req.GetUuid()),
 	}
 
 	if err = s.scriptOutPut(data); err != nil {

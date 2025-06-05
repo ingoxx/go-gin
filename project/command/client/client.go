@@ -80,13 +80,17 @@ func (rc *GrpcClient) CallSystemLogMth(log, start, end, field string) (err error
 }
 
 func (rc *GrpcClient) RunLinuxCmd(wg *sync.WaitGroup, limit chan struct{}, output chan map[string][]string) (err error) {
+
 	defer wg.Done()
-	stream, err := rc.sc.RunLinuxCmd(context.Background(), &pb.StreamRequest{Cmd: rc.Cmd, Ip: rc.Ip})
-	if err != nil {
-		return
-	}
 
 	var res = make(map[string][]string)
+	stream, err := rc.sc.RunLinuxCmd(context.Background(), &pb.StreamRequest{Cmd: rc.Cmd, Ip: rc.Ip})
+	if err != nil {
+		res[rc.Ip] = append(res[rc.Ip], err.Error())
+		output <- res
+
+		return
+	}
 
 	for {
 		resp, err := stream.Recv()
@@ -132,7 +136,7 @@ func (rc *GrpcClient) CallSendProgramCmdMth() (err error) {
 }
 
 func (rc *GrpcClient) DockerUpdate() (err error) {
-	stream, err := rc.sc.DockerUpdate(context.Background(), &pb.StreamRequest{Uuid: rc.Uuid})
+	stream, err := rc.sc.DockerUpdate(context.Background(), &pb.StreamRequest{Uuid: rc.Uuid, Ip: rc.Ip})
 	if err != nil {
 		return
 	}
@@ -156,7 +160,7 @@ func (rc *GrpcClient) DockerUpdate() (err error) {
 }
 
 func (rc *GrpcClient) DockerUpdateLog() (err error) {
-	stream, err := rc.sc.DockerUpdateLog(context.Background(), &pb.StreamRequest{Uuid: rc.Uuid})
+	stream, err := rc.sc.DockerUpdateLog(context.Background(), &pb.StreamRequest{Uuid: rc.Uuid, Ip: rc.Ip})
 	if err != nil {
 		return
 	}
@@ -180,7 +184,7 @@ func (rc *GrpcClient) DockerUpdateLog() (err error) {
 }
 
 func (rc *GrpcClient) JavaUpdate() (err error) {
-	stream, err := rc.sc.JavaUpdate(context.Background(), &pb.StreamRequest{Uuid: rc.Uuid})
+	stream, err := rc.sc.JavaUpdate(context.Background(), &pb.StreamRequest{Uuid: rc.Uuid, Ip: rc.Ip})
 	if err != nil {
 		return
 	}
@@ -205,7 +209,7 @@ func (rc *GrpcClient) JavaUpdate() (err error) {
 }
 
 func (rc *GrpcClient) JavaUpdateLog() (err error) {
-	stream, err := rc.sc.JavaUpdateLog(context.Background(), &pb.StreamRequest{Uuid: rc.Uuid})
+	stream, err := rc.sc.JavaUpdateLog(context.Background(), &pb.StreamRequest{Uuid: rc.Uuid, Ip: rc.Ip})
 	if err != nil {
 		return
 	}
@@ -229,19 +233,7 @@ func (rc *GrpcClient) JavaUpdateLog() (err error) {
 	return
 }
 
-func (rc *GrpcClient) CreateSwarm(masterIP string) (err error) {
-
-	return
-}
-
-func (rc *GrpcClient) JoinSwarm(masterIP, nodeIp, token string) (err error) {
-	return
-}
-
-func (rc *GrpcClient) LeaveSwarm() (err error) {
-	return
-}
-
+// SyncFileClient 多线程批量分发文件到指定服务器
 type SyncFileClient struct {
 	Ip      []string
 	File    []string

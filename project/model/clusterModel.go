@@ -17,7 +17,7 @@ type ClusterModel struct {
 	Date        time.Time     `json:"date" gorm:"default:CURRENT_TIMESTAMP;nullable"`
 	Status      uint          `json:"status" gorm:"default:300;comment:100-集群异常,200-集群正常,300-正在初始化"`
 	Servers     []AssetsModel `json:"servers" gorm:"foreignKey:ClusterID"`
-	ClusterType string        `json:"cluster_type" gorm:"default:1"`
+	ClusterType string        `json:"cluster_type" gorm:"default:1;comment:1-docker swarm,2-kubernetes,3-其他"`
 	HealthPort  int32         `json:"health_port" gorm:"default:12306;comment:管理节点的健康检测端口"`
 }
 

@@ -157,7 +157,7 @@ func (o *AssetsModel) Delete(ip []string) (err error) {
 
 func (o *AssetsModel) Update(am AssetsModel) (err error) {
 	tx := dao.DB.Begin()
-	if err = tx.Model(o).Where("ip = ?", am.Ip).Updates(am).Error; err != nil {
+	if err = tx.Model(o).Where("id = ?", am.ID).Updates(am).Error; err != nil {
 		tx.Rollback()
 		return
 	}
