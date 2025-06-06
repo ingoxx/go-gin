@@ -55,7 +55,7 @@ func (pur *AssetsProgramUpdateRecordModel) Update(data map[string]interface{}) (
 	return
 }
 
-func (pur *AssetsProgramUpdateRecordModel) Delete(pid []int32) (err error) {
+func (pur *AssetsProgramUpdateRecordModel) Delete(id []int64) (err error) {
 	tx := dao.DB.Begin()
 
 	defer func() {
@@ -64,7 +64,7 @@ func (pur *AssetsProgramUpdateRecordModel) Delete(pid []int32) (err error) {
 		}
 	}()
 
-	if err = tx.Where("id IN ?", pid).Unscoped().Delete(pur).Error; err != nil {
+	if err = tx.Where("id IN ?", id).Unscoped().Delete(pur).Error; err != nil {
 		tx.Rollback()
 		return
 	}

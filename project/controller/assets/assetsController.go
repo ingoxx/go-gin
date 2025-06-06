@@ -40,20 +40,6 @@ func RunProgramController(ctx *gin.Context) {
 
 }
 
-// SyncFileController 分发文件
-func SyncFileController(ctx *gin.Context) {
-	conn, err := upGrader.Upgrade(ctx.Writer, ctx.Request, nil)
-	if err != nil {
-		return
-	}
-
-	defer conn.Close()
-
-	if err = service.NewSendFileWs(conn).Send(); err != nil {
-		return
-	}
-}
-
 // RunProgramApiController 程序更新-当前页面
 func RunProgramApiController(ctx *gin.Context) {
 	var ps RunProgramApiForm
@@ -72,6 +58,20 @@ func RunProgramApiController(ctx *gin.Context) {
 
 }
 
+// SyncFileController 分发文件
+func SyncFileController(ctx *gin.Context) {
+	conn, err := upGrader.Upgrade(ctx.Writer, ctx.Request, nil)
+	if err != nil {
+		return
+	}
+
+	defer conn.Close()
+
+	if err = service.NewSendFileWs(conn).Send(); err != nil {
+		return
+	}
+}
+
 func CreateUpdateProgramRecordController(ctx *gin.Context) {
 	var create CreateUpdateProgramRecordForm
 
@@ -87,6 +87,32 @@ func CreateUpdateProgramRecordController(ctx *gin.Context) {
 		"message": "更新已提交",
 		"code":    10000,
 	})
+}
+
+func DelProgramUpdateRecordController(ctx *gin.Context) {
+	var del ProgramUpdateRecordDelForm
+	var adp model.AssetsProgramUpdateRecordModel
+	if err := ctx.BindJSON(&del); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+			"code":    10001,
+		})
+		return
+	}
+
+	if err := adp.Delete(del.ID); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("删除id：%v失败, errMsg: %v", del.ID, err.Error()),
+			"code":    10003,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("删除id：%v成功", del.ID),
+		"code":    10000,
+	})
+
 }
 
 func ProgramUpdateListController(ctx *gin.Context) {

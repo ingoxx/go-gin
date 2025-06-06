@@ -1,6 +1,9 @@
 package model
 
-import "github.com/ingoxx/go-gin/project/dao"
+import (
+	"fmt"
+	"github.com/ingoxx/go-gin/project/dao"
+)
 
 // AssetsProgramModel 程序操作列表, 可在这里添加新的功能
 type AssetsProgramModel struct {
@@ -25,6 +28,13 @@ func (apm *AssetsProgramModel) Create(data AssetsProgramModel) (err error) {
 	return
 }
 
-func (apm *AssetsProgramModel) Delete() {}
+func (apm *AssetsProgramModel) Delete(id []uint) error {
+	fmt.Println("id >>> ", id)
+	if err := dao.DB.Debug().Where("id IN ?", id).Unscoped().Delete(apm).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (apm *AssetsProgramModel) Update() {}

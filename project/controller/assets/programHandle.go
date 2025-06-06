@@ -3,13 +3,13 @@ package assets
 import (
 	"encoding/json"
 	"errors"
+	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/ingoxx/go-gin/project/command/rpcConfig"
 	"github.com/ingoxx/go-gin/project/dao"
 	"github.com/ingoxx/go-gin/project/model"
 	"github.com/ingoxx/go-gin/project/service"
 	"github.com/ingoxx/go-gin/project/utils"
-	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"path/filepath"
 	"strings"
 )
@@ -17,6 +17,10 @@ import (
 var (
 	validate = validator.New()
 )
+
+type ProgramUpdateRecordDelForm struct {
+	ID []int64 `json:"id" form:"id" binding:"required"`
+}
 
 type RunProgramApiForm struct {
 	Ip         string `form:"ip" json:"ip" gorm:"not null" binding:"required"`

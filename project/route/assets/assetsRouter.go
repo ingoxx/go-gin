@@ -20,6 +20,7 @@ func Router(r *gin.Engine) {
 		assets.POST("/program/update/create", ac.CreateUpdateProgramRecordController)
 		assets.POST("/api", ac.RunProgramApiController)
 		assets.POST("/program/add", ac.AddProgramOperateController)
+		assets.POST("/program/del", ac.DelProgramUpdateRecordController)
 		assets.GET("/program/list", ac.ProgramListController)
 		//assets.Any("/terminal/*path", ac.WebTerminalController)
 		assets.GET("/terminal", ac.WebTerminalController)

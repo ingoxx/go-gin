@@ -153,12 +153,12 @@ func (ws *Ws) wsSendData(data string) error {
 
 func (ws *Ws) recordLog() {
 	var data = make(map[string]interface{})
-	if err := ws.RecordLog(data); err != nil {
-		logger.Error(fmt.Sprintf("操作记录失败, errMsg: %s", err.Error()))
+	if ws.gCtx.Request.URL.Path == "/assets/ws" {
+		data["url"] = fmt.Sprintf("%s, 更新操作程序: %s, 操作服务器: %v", ws.gCtx.Request.URL.Path, ws.ProcessName, ws.Ip)
+		data["operator"] = ws.gCtx.Query("user")
+		data["ip"] = ws.gCtx.RemoteIP()
 	}
-}
 
-func (ws *Ws) RecordLog(data map[string]interface{}) error {
 	if ws.gCtx.Request.URL.Path == "/assets/run-linux-cmd" {
 		data["url"] = fmt.Sprintf("%s, 批量执行命令: %s, 操作服务器: %v", ws.gCtx.Request.URL.Path, ws.Cmd, ws.Ip)
 		data["operator"] = ws.gCtx.Query("user")
@@ -171,10 +171,15 @@ func (ws *Ws) RecordLog(data map[string]interface{}) error {
 		data["ip"] = ws.gCtx.Query("user")
 	}
 
+	if err := ws.RecordLog(data); err != nil {
+		logger.Error(fmt.Sprintf("操作记录失败, errMsg: %s", err.Error()))
+	}
+}
+
+func (ws *Ws) RecordLog(data map[string]interface{}) error {
 	if err := ws.record.RecordLog(data); err != nil {
 		return err
 	}
-
 	if err := ws.record.DataCount(ws.gCtx.Request.URL.Path); err != nil {
 		return err
 	}
