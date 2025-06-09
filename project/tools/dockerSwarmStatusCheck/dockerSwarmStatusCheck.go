@@ -75,7 +75,18 @@ func (chc *ClusterHealthChecker) getWorkerStatus(ip string) (uint, error) {
 	return isLeave, nil
 }
 
-func (chc *ClusterHealthChecker) getClusterId(managerIp string) (string, error) {
+func (chc *ClusterHealthChecker) getClusterId(managerIp string) (uint, error) {
+	var clusterID uint
+	query := "SELECT id FROM cluster_models WHERE master_ip = ?"
+	err := chc.db.QueryRow(query, managerIp).Scan(&clusterID)
+	if err != nil {
+		return clusterID, err
+	}
+
+	return clusterID, nil
+}
+
+func (chc *ClusterHealthChecker) getClusterCid(managerIp string) (string, error) {
 	var clusterID string
 	query := "SELECT cluster_cid FROM cluster_models WHERE master_ip = ?"
 	err := chc.db.QueryRow(query, managerIp).Scan(&clusterID)
@@ -99,9 +110,9 @@ func (chc *ClusterHealthChecker) getSwarmNodes() ([]swarm.Node, error) {
 	return nodes, nil
 }
 
-func (chc *ClusterHealthChecker) updateServerStatus(ip string, role, status uint) {
-	query := "UPDATE assets_models SET node_status = ?, node_type = ? WHERE ip = ?"
-	_, err := chc.db.Exec(query, status, role, ip)
+func (chc *ClusterHealthChecker) updateServerStatus(ip string, role, status, cid uint) {
+	query := "UPDATE assets_models SET node_status = ?, node_type = ?, cluster_id = ? WHERE ip = ?"
+	_, err := chc.db.Exec(query, status, role, cid, ip)
 	if err != nil {
 		log.Printf("❌ Failed to update server status for %s: %v\n", ip, err)
 	}
@@ -144,6 +155,14 @@ func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 			}
 		}
 
+		id, err := chc.getClusterId(managerIp)
+		if err != nil || id == 0 {
+			esg := fmt.Sprintf("获取管理节点id失败, 失败信息: '%v', 集群id: '%s'", err, chc.cid)
+			ddwarning.SendWarning(esg)
+			log.Println(esg)
+			return
+		}
+
 		leaveType, err := chc.getWorkerStatus(ip)
 		if err != nil {
 			ddwarning.SendWarning(fmt.Sprintf("获取节点状态失败, 失败信息: '%v', 集群id: '%s'", err, chc.cid))
@@ -151,7 +170,7 @@ func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 		}
 
 		if leaveType == 1 {
-			chc.updateServerStatus(ip, 3, 300)
+			chc.updateServerStatus(ip, 3, 300, id)
 		} else {
 			if clusterStatusInfo[status] == 100 {
 				chc.cache[ip] = ip
@@ -166,7 +185,7 @@ func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 					ddwarning.SendWarning(esg)
 				}
 			}
-			chc.updateServerStatus(ip, clusterStatusInfo[role], clusterStatusInfo[status])
+			chc.updateServerStatus(ip, clusterStatusInfo[role], clusterStatusInfo[status], id)
 		}
 	}
 
@@ -256,7 +275,7 @@ func Check(currentServerIp string) {
 				continue
 			}
 
-			cid, err := c.getClusterId(currentServerIp)
+			cid, err := c.getClusterCid(currentServerIp)
 			if err != nil {
 				log.Printf("fail to get cluster ID, manager ip currentServerIp, errMsg: %s\n", err.Error())
 				return
