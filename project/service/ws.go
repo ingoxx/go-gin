@@ -145,6 +145,7 @@ func (ws *Ws) wsSendData(data string) error {
 	ws.lock.Lock()
 	defer ws.lock.Unlock()
 	if err := ws.Conn.WriteMessage(1, []byte(fmt.Sprintf("%s\n", data))); err != nil {
+		logger.Error(fmt.Sprintf("wsSendData fail to send data, errMsg: %s", err.Error()))
 		return err
 	}
 
@@ -213,6 +214,9 @@ func (ws *Ws) AcpSystemLog() error {
 		}
 
 		if err := client.NewGrpcClient(ws.ProcessName, ws.Uuid, ws.Cmd, ip, ws.Conn, conn).CallSystemLogMth(ws.LogName, ws.Start, ws.End, ws.Field); err != nil {
+			if err := ws.wsSendData(err.Error()); err != nil {
+				return err
+			}
 			return err
 		}
 	}

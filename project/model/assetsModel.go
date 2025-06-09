@@ -138,7 +138,7 @@ func (o *AssetsModel) Create(am AssetsModel) (err error) {
 	return
 }
 
-func (o *AssetsModel) Delete(ip []string) (err error) {
+func (o *AssetsModel) Delete(id []uint) (err error) {
 	tx := dao.DB.Begin()
 
 	defer func() {
@@ -147,7 +147,7 @@ func (o *AssetsModel) Delete(ip []string) (err error) {
 		}
 	}()
 
-	if err = tx.Where("ip IN ?", ip).Unscoped().Delete(o).Error; err != nil {
+	if err = tx.Where("id IN ?", id).Unscoped().Delete(o).Error; err != nil {
 		tx.Rollback()
 		return
 	}

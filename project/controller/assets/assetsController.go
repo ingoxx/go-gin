@@ -272,7 +272,7 @@ func DeleteController(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("%v 删除成功", adf.Ips),
+		"message": fmt.Sprintf("%v 删除成功", adf.ID),
 		"code":    10000,
 	})
 }

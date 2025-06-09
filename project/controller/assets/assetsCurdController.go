@@ -83,7 +83,7 @@ func (a *ListForm) GetAllClusterData() ([]*model.ClusterModel, error) {
 }
 
 type DelForm struct {
-	Ips []string `form:"ips" json:"ips" binding:"required"`
+	ID []uint `form:"id" json:"id" binding:"required"`
 }
 
 func (a *DelForm) Del(ctx *gin.Context) (err error) {
@@ -92,7 +92,7 @@ func (a *DelForm) Del(ctx *gin.Context) (err error) {
 		return
 	}
 
-	if err = am.Delete(a.Ips); err != nil {
+	if err = am.Delete(a.ID); err != nil {
 		return
 	}
 
