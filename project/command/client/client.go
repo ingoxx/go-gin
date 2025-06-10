@@ -16,6 +16,10 @@ import (
 	"sync"
 )
 
+const (
+	rpcPort = 12306
+)
+
 type GrpcClient struct {
 	Name    string // 操作函数名
 	Uuid    string
@@ -257,7 +261,7 @@ func (sfc *SyncFileClient) Run() (err error) {
 		for _, ip := range sfc.Ip {
 			sfc.wg.Add(1)
 			go func(ip, file string) {
-				defer sfc.wg.Done()
+
 				file = filepath.Join(rpcConfig.UploadPath, file)
 				if err = sfc.Send(ip, file); err != nil {
 					sfc.resChan <- err.Error()
@@ -290,7 +294,8 @@ func (sfc *SyncFileClient) ReturnWsData(data string) (err error) {
 }
 
 func (sfc *SyncFileClient) Send(ip, file string) (err error) {
-	server := fmt.Sprintf("%s:12306", ip)
+	defer sfc.wg.Done()
+	server := fmt.Sprintf("%s:%d", ip, rpcPort)
 	conn, err := grpc.NewClient(server, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return

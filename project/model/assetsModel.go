@@ -5,6 +5,7 @@ import (
 	"github.com/ingoxx/go-gin/project/dao"
 	"github.com/ingoxx/go-gin/project/service"
 	"gorm.io/gorm"
+	"strings"
 	"time"
 )
 
@@ -139,7 +140,9 @@ func (o *AssetsModel) Create(am AssetsModel) (err error) {
 	return
 }
 
-func (o *AssetsModel) Delete(id []uint) (err error) {
+func (o *AssetsModel) Delete(id []uint) error {
+	var servers []AssetsModel
+
 	tx := dao.DB.Begin()
 
 	defer func() {
@@ -148,22 +151,26 @@ func (o *AssetsModel) Delete(id []uint) (err error) {
 		}
 	}()
 
-	var servers []AssetsModel
 	// 查出这些服务器的信息，只取ID和ClusterID
 	if err := dao.DB.Select("id", "cluster_id", "ip").Where("id IN ?", id).Find(&servers).Error; err != nil {
 		return err
 	}
 
+	var ip = make([]string, 0, len(servers))
 	// 判断是否有服务器还绑定了集群
 	for _, s := range servers {
 		if s.ClusterID != nil {
-			return fmt.Errorf("服务器'%s' 已绑定集群，无法删除，请先移除集群绑定", s.Ip)
+			ip = append(ip, s.Ip)
 		}
 	}
 
-	if err = tx.Where("id IN ?", id).Unscoped().Delete(o).Error; err != nil {
+	if len(ip) != 0 {
+		return fmt.Errorf("服务器'%s' 已绑定集群，无法删除，请先移除集群绑定", strings.Join(ip, ", "))
+	}
+
+	if err := tx.Where("id IN ?", id).Unscoped().Delete(o).Error; err != nil {
 		tx.Rollback()
-		return
+		return err
 	}
 
 	return tx.Commit().Error
