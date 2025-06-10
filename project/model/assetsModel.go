@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"github.com/ingoxx/go-gin/project/dao"
 	"github.com/ingoxx/go-gin/project/service"
 	"gorm.io/gorm"
@@ -146,6 +147,19 @@ func (o *AssetsModel) Delete(id []uint) (err error) {
 			tx.Rollback()
 		}
 	}()
+
+	var servers []AssetsModel
+	// 查出这些服务器的信息，只取ID和ClusterID
+	if err := dao.DB.Select("id", "cluster_id", "ip").Where("id IN ?", id).Find(&servers).Error; err != nil {
+		return err
+	}
+
+	// 判断是否有服务器还绑定了集群
+	for _, s := range servers {
+		if s.ClusterID != nil {
+			return fmt.Errorf("服务器'%s' 已绑定集群，无法删除，请先移除集群绑定", s.Ip)
+		}
+	}
 
 	if err = tx.Where("id IN ?", id).Unscoped().Delete(o).Error; err != nil {
 		tx.Rollback()

@@ -277,6 +277,7 @@ func Check(currentServerIp string) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
+	log.Println("start health check")
 	for {
 		select {
 		case <-ticker.C:
@@ -290,7 +291,6 @@ func Check(currentServerIp string) {
 				return
 			}
 			if cid != "" {
-				log.Println("start health check")
 				c.checkClusterHealth(currentServerIp)
 			}
 		}
