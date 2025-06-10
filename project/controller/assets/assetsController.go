@@ -67,7 +67,7 @@ func SyncFileController(ctx *gin.Context) {
 
 	defer conn.Close()
 
-	if err = service.NewSendFileWs(conn).Send(); err != nil {
+	if err = service.NewSendFileWs(ctx, conn, &om).Send(); err != nil {
 		return
 	}
 }

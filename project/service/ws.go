@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
+	"strings"
 	"sync"
 )
 
@@ -226,14 +227,18 @@ func (ws *Ws) AcpSystemLog() error {
 
 // SendFileWs 文件分发
 type SendFileWs struct {
-	Conn *websocket.Conn `json:"-"`
-	Ip   []string        `json:"ip"`
-	File []string        `json:"file"`
+	Conn   *websocket.Conn `json:"-"`
+	ctx    *gin.Context
+	record api.RecordWebsocketLog
+	Ip     []string `json:"ip"`
+	File   []string `json:"file"`
 }
 
-func NewSendFileWs(conn *websocket.Conn) *SendFileWs {
+func NewSendFileWs(ctx *gin.Context, conn *websocket.Conn, record api.RecordWebsocketLog) *SendFileWs {
 	return &SendFileWs{
-		Conn: conn,
+		Conn:   conn,
+		record: record,
+		ctx:    ctx,
 	}
 }
 
@@ -247,11 +252,27 @@ func (sfw *SendFileWs) Send() (err error) {
 		return
 	}
 
+	go sfw.recordLog()
+
 	if err := client.NewSyncFileRpcClient(sfw.Ip, sfw.File, sfw.Conn).Run(); err != nil {
 		return err
 	}
 
 	return
+}
+
+func (sfw *SendFileWs) recordLog() {
+	var data = make(map[string]interface{})
+	if sfw.ctx.Request.URL.Path == "/assets/file/ws" {
+		data["url"] = fmt.Sprintf("%s, 分发文件名: %s, 分发服务器: %s", sfw.ctx.Request.URL.Path, strings.Join(sfw.File, ","), strings.Join(sfw.Ip, ","))
+		data["operator"] = sfw.ctx.RemoteIP()
+		data["ip"] = sfw.ctx.Query("user")
+	}
+
+	if err := sfw.record.RecordLog(data); err != nil {
+		logger.Error(fmt.Sprintf("地址 '%s' 请求操作记录失败, errMsg: %s", sfw.ctx.Request.URL.Path, err.Error()))
+		return
+	}
 }
 
 func (sfw *SendFileWs) Error(err error) {
@@ -264,6 +285,5 @@ func ParseJsonToStruct(data []byte, ws interface{}) (err error) {
 	if err = json.Unmarshal(data, &ws); err != nil {
 		return
 	}
-
 	return
 }
