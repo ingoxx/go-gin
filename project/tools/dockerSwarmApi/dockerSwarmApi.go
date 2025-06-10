@@ -2,6 +2,7 @@ package dockerSwarmApi
 
 import (
 	"context"
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
@@ -73,6 +74,34 @@ func (d *DockerSwarmOp) LeaveSwarm() error {
 	if err != nil {
 		return err
 	}
+
+	if err := d.NodeRemove(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *DockerSwarmOp) NodeRemove() error {
+	nodes, err := d.cli.NodeList(d.ctx, types.NodeListOptions{})
+	if err != nil {
+		return err
+	}
+
+	var nodeID string
+
+	for _, node := range nodes {
+		if node.Status.Addr == d.workIp {
+			nodeID = node.ID
+		}
+	}
+
+	if nodeID != "" {
+		if err := d.cli.NodeRemove(d.ctx, nodeID, types.NodeRemoveOptions{Force: true}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
