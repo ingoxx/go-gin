@@ -52,6 +52,7 @@ func (WhileUrls) OperateWhileList(url string) bool {
 		"/assets/run-linux-cmd",
 		"/assets/view-system-log",
 		"/cluster/list",
+		"/assets/ws",
 	}
 
 	for i := 0; i < len(wls); i++ {

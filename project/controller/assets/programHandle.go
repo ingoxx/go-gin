@@ -158,7 +158,7 @@ func (u *UploadForm) UploadFiles(ctx *gin.Context) (md5 map[string]string, err e
 
 	// 这个上传文件的日志记录有点特殊，只能在这里走日志记录，middleware不好记录
 	record["user"] = ctx.Query("user")
-	record["url"] = ctx.Request.URL.Path + ", " + strings.Join(fileList, ",")
+	record["url"] = ctx.Request.URL.Path + ", 文件名：" + strings.Join(fileList, ",")
 	record["ip"] = ctx.RemoteIP()
 
 	if err = addLog.AloneAddOperateLog(record); err != nil {
