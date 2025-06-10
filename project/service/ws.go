@@ -169,8 +169,8 @@ func (ws *Ws) recordLog() {
 
 	if ws.gCtx.Request.URL.Path == "/assets/view-system-log" {
 		data["url"] = fmt.Sprintf("%s, 查询日志: %s, 查询字段: %s, 查询日期: %s-%s, 操作服务器: %v", ws.gCtx.Request.URL.Path, ws.LogName, ws.Field, ws.Start, ws.End, ws.Ip)
-		data["operator"] = ws.gCtx.RemoteIP()
-		data["ip"] = ws.gCtx.Query("user")
+		data["operator"] = ws.gCtx.Query("user")
+		data["ip"] = ws.gCtx.RemoteIP()
 	}
 
 	if err := ws.RecordLog(data); err != nil {
@@ -265,8 +265,8 @@ func (sfw *SendFileWs) recordLog() {
 	var data = make(map[string]interface{})
 	if sfw.ctx.Request.URL.Path == "/assets/file/ws" {
 		data["url"] = fmt.Sprintf("%s, 分发文件名: %s, 分发服务器: %s", sfw.ctx.Request.URL.Path, strings.Join(sfw.File, ","), strings.Join(sfw.Ip, ","))
-		data["operator"] = sfw.ctx.RemoteIP()
-		data["ip"] = sfw.ctx.Query("user")
+		data["operator"] = sfw.ctx.Query("user")
+		data["ip"] = sfw.ctx.RemoteIP()
 	}
 
 	if err := sfw.record.RecordLog(data); err != nil {
