@@ -142,6 +142,7 @@ func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 	if err != nil {
 		log.Printf("❌ Failed to get swarm nodes: %v\n", err)
 		ddwarning.SendWarning(fmt.Sprintf("无法获取节点信息, 失败信息: '%v', 集群ID: '%s'", err, chc.cid))
+		return
 	}
 
 	var primaryManagerIP string
@@ -152,6 +153,7 @@ func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 		ip := node.Status.Addr
 		status := string(node.Status.State)
 		role := string(node.Spec.Role)
+		nodeID := node.ID
 
 		if status == "ready" {
 			// 如果是 Manager，记录健康的管理节点
@@ -167,8 +169,7 @@ func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 		id, err := chc.getClusterId(managerIp)
 		if err != nil || id == 0 {
 			esg := fmt.Sprintf("获取管理节点id失败, 失败信息: '%v', 集群id: '%s'", err, chc.cid)
-			ddwarning.SendWarning(esg)
-			log.Println(esg)
+			chc.sendWarnMsg(esg)
 			return
 		}
 
@@ -179,19 +180,22 @@ func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 		}
 
 		if leaveType == 1 {
+			if err := chc.NodeRemove(nodeID); err != nil {
+				esg := fmt.Sprintf("移除'%s'失败，失败信息：'%v', 所在集群id：'%s'", ip, err, chc.cid)
+				chc.sendWarnMsg(esg)
+				return
+			}
 			chc.updateServerStatus(ip, 3, 300, 0)
 		} else {
 			if clusterStatusInfo[status] == 100 {
 				chc.cache[ip] = ip
 				esg := fmt.Sprintf("节点'%s'发生故障, 当前状态: '%s', 故障信息信息: '%v', 集群id: '%s'", ip, node.Status.State, node.Status.Message, chc.cid)
-				log.Println(esg)
-				ddwarning.SendWarning(esg)
+				chc.sendWarnMsg(esg)
 			} else if clusterStatusInfo[status] == 200 {
 				if chc.cache[ip] == ip {
 					delete(chc.cache, ip)
 					esg := fmt.Sprintf("节点'%s'已恢复, 当前状态: '%v', 集群id: '%s'", ip, node.Status.State, chc.cid)
-					log.Println(esg)
-					ddwarning.SendWarning(esg)
+					chc.sendWarnMsg(esg)
 				}
 			}
 			chc.updateServerStatus(ip, clusterStatusInfo[role], clusterStatusInfo[status], id)
@@ -248,6 +252,19 @@ func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 	}
 
 	log.Printf("cluster %s health ok\n", chc.cid)
+}
+
+func (chc *ClusterHealthChecker) NodeRemove(nodeID string) error {
+	if err := chc.cli.NodeRemove(chc.ctx, nodeID, types.NodeRemoveOptions{Force: true}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (chc *ClusterHealthChecker) sendWarnMsg(esg string) {
+	ddwarning.SendWarning(esg)
+	log.Println(esg)
 }
 
 func Check(currentServerIp string) {

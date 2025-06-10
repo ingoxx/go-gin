@@ -75,10 +75,6 @@ func (d *DockerSwarmOp) LeaveSwarm() error {
 		return err
 	}
 
-	if err := d.NodeRemove(); err != nil {
-		return err
-	}
-
 	return nil
 }
 

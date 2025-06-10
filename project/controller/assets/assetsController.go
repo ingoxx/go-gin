@@ -142,13 +142,14 @@ func UploadController(ctx *gin.Context) {
 			"message": err.Error(),
 			"code":    10001,
 		})
-	} else {
-		ctx.SecureJSON(http.StatusOK, gin.H{
-			"message": "upload ok",
-			"data":    data,
-			"code":    10000,
-		})
+		return
 	}
+
+	ctx.SecureJSON(http.StatusOK, gin.H{
+		"message": "upload ok",
+		"data":    data,
+		"code":    10000,
+	})
 }
 
 // ListController2 服务器列表
