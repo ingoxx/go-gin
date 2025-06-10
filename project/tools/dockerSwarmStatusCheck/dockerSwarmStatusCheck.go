@@ -111,10 +111,19 @@ func (chc *ClusterHealthChecker) getSwarmNodes() ([]swarm.Node, error) {
 }
 
 func (chc *ClusterHealthChecker) updateServerStatus(ip string, role, status, cid uint) {
-	query := "UPDATE assets_models SET node_status = ?, node_type = ?, cluster_id = ? WHERE ip = ?"
-	_, err := chc.db.Exec(query, status, role, cid, ip)
+	var err error
+
+	if cid == 0 {
+		query := "UPDATE assets_models SET node_status = ?, node_type = ?, cluster_id = NULL WHERE ip = ?"
+		_, err = chc.db.Exec(query, status, role, ip)
+	} else {
+		query := "UPDATE assets_models SET node_status = ?, node_type = ?, cluster_id = ? WHERE ip = ?"
+		_, err = chc.db.Exec(query, status, role, cid, ip)
+	}
+
 	if err != nil {
 		log.Printf("❌ Failed to update server status for %s: %v\n", ip, err)
+		return
 	}
 }
 
@@ -170,7 +179,7 @@ func (chc *ClusterHealthChecker) checkClusterHealth(managerIp string) {
 		}
 
 		if leaveType == 1 {
-			chc.updateServerStatus(ip, 3, 300, id)
+			chc.updateServerStatus(ip, 3, 300, 0)
 		} else {
 			if clusterStatusInfo[status] == 100 {
 				chc.cache[ip] = ip
