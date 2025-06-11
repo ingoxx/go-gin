@@ -17,7 +17,13 @@ import (
 
 type Ws struct {
 	Conn        *websocket.Conn `json:"-"`
+	wg          *sync.WaitGroup
+	gCtx        *gin.Context
+	lock        *sync.Mutex
 	mc          api.ModelCurd
+	record      api.RecordWebsocketLog
+	limit       chan struct{}
+	output      chan map[string][]string
 	Ip          []string `json:"ip"`
 	ProcessName string   `json:"name"`
 	Uuid        string   `json:"uuid"`
@@ -26,12 +32,6 @@ type Ws struct {
 	Start       string   `json:"start"`
 	End         string   `json:"end"`
 	Field       string   `json:"field"`
-	wg          *sync.WaitGroup
-	gCtx        *gin.Context
-	limit       chan struct{}
-	output      chan map[string][]string
-	record      api.RecordWebsocketLog
-	lock        *sync.Mutex
 }
 
 func NewWs(conn *websocket.Conn, mc api.ModelCurd, gCtx *gin.Context, record api.RecordWebsocketLog) *Ws {
@@ -45,7 +45,6 @@ func NewWs(conn *websocket.Conn, mc api.ModelCurd, gCtx *gin.Context, record api
 		record: record,
 		lock:   new(sync.Mutex),
 	}
-
 }
 
 func (ws *Ws) Error(err error) {
@@ -96,7 +95,7 @@ func (ws *Ws) Run() (err error) {
 	return
 }
 
-// AcpLinuxCmd 批量命令执行
+// AcpLinuxCmd 多线程命令执行
 func (ws *Ws) AcpLinuxCmd() (err error) {
 	for _, ip := range ws.Ip {
 		ws.wg.Add(1)
