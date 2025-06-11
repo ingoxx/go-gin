@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/websocket"
 	pb "github.com/ingoxx/go-gin/project/command/command"
 	"github.com/ingoxx/go-gin/project/command/rpcConfig"
+	"github.com/ingoxx/go-gin/project/config"
 	"github.com/ingoxx/go-gin/project/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -16,16 +17,7 @@ import (
 	"sync"
 )
 
-const (
-	rpcPort = 12306
-)
-
 type GrpcClient struct {
-	Name    string // 操作函数名
-	Uuid    string
-	File    string
-	Cmd     string
-	Ip      string
 	RpcConn *grpc.ClientConn
 	WsConn  *websocket.Conn
 	ctx     context.Context
@@ -34,6 +26,11 @@ type GrpcClient struct {
 	sc      pb.StreamUpdateProgramServiceClient
 	sl      pb.StreamCheckSystemLogServiceClient
 	ds      pb.ClusterOperateServiceClient
+	Name    string // 操作函数名
+	Uuid    string
+	File    string
+	Cmd     string
+	Ip      string
 }
 
 func NewGrpcClient(name, uuid, cmd, ip string, ws *websocket.Conn, rc *grpc.ClientConn) *GrpcClient {
@@ -237,14 +234,14 @@ func (rc *GrpcClient) JavaUpdateLog() (err error) {
 
 // SyncFileClient 多线程批量分发文件到指定服务器
 type SyncFileClient struct {
-	Ip      []string
-	File    []string
 	RpcConn *grpc.ClientConn
 	WsConn  *websocket.Conn
 	ctx     context.Context
 	wg      sync.WaitGroup
-	resChan chan string
 	lock    *sync.Mutex
+	Ip      []string
+	File    []string
+	resChan chan string
 }
 
 func NewSyncFileRpcClient(ip, file []string, ws *websocket.Conn) *SyncFileClient {
@@ -261,7 +258,6 @@ func (sfc *SyncFileClient) Run() (err error) {
 		for _, ip := range sfc.Ip {
 			sfc.wg.Add(1)
 			go func(ip, file string) {
-
 				file = filepath.Join(rpcConfig.UploadPath, file)
 				if err = sfc.Send(ip, file); err != nil {
 					sfc.resChan <- err.Error()
@@ -295,7 +291,7 @@ func (sfc *SyncFileClient) ReturnWsData(data string) (err error) {
 
 func (sfc *SyncFileClient) Send(ip, file string) (err error) {
 	defer sfc.wg.Done()
-	server := fmt.Sprintf("%s:%d", ip, rpcPort)
+	server := fmt.Sprintf("%s:%d", ip, config.RpcPort)
 	conn, err := grpc.NewClient(server, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return

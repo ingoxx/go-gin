@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ingoxx/go-gin/project/api"
 	"github.com/ingoxx/go-gin/project/command/client"
+	"github.com/ingoxx/go-gin/project/config"
 	"github.com/ingoxx/go-gin/project/logger"
 	"github.com/ingoxx/go-gin/project/model"
 	"google.golang.org/grpc"
@@ -33,7 +34,7 @@ func NewProgramAsyncRunCelery() *ProgramAsyncRunCelery {
 			dataModel["status"] = 400
 			dataModel["ip"] = data["ip"].(string)
 
-			conn, err := grpc.NewClient(fmt.Sprintf("%s:12306", data["ip"].(string)), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			conn, err := grpc.NewClient(fmt.Sprintf("%s:%d", data["ip"].(string), config.RpcPort), grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
 				dataModel["status"] = 300
 				if err := apr.Update(dataModel); err != nil {

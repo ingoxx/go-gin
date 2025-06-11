@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	pb "github.com/ingoxx/go-gin/project/command/command"
+	"github.com/ingoxx/go-gin/project/config"
 	"github.com/ingoxx/go-gin/project/dao"
 	"github.com/ingoxx/go-gin/project/model"
 	"google.golang.org/grpc"
@@ -13,7 +14,7 @@ import (
 )
 
 func (cl *SwarmOperate) initGrpc(ip string) (conn *grpc.ClientConn, err error) {
-	conn, err = grpc.NewClient(fmt.Sprintf("%s:12306", ip), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err = grpc.NewClient(fmt.Sprintf("%s:%d", ip, config.RpcPort), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return
 	}
