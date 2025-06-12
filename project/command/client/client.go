@@ -327,6 +327,7 @@ func (sfc *SyncFileClient) Send(ip, file string) (err error) {
 		}
 
 		if err = stream.Send(&pb.FileMessage{Byte: buffer[:b], Name: filepath.Base(file), Ip: ip}); err != nil {
+			sfc.resChan <- err.Error()
 			return err
 		}
 	}
