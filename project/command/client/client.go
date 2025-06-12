@@ -260,7 +260,6 @@ func (sfc *SyncFileClient) Run() (err error) {
 			go func(ip, file string) {
 				file = filepath.Join(rpcConfig.UploadPath, file)
 				if err = sfc.Send(ip, file); err != nil {
-					sfc.resChan <- err.Error()
 					return
 				}
 			}(ip, file)
@@ -294,6 +293,7 @@ func (sfc *SyncFileClient) Send(ip, file string) (err error) {
 	server := fmt.Sprintf("%s:%d", ip, config.RpcPort)
 	conn, err := grpc.NewClient(server, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
+		sfc.resChan <- err.Error()
 		return
 	}
 
@@ -303,6 +303,7 @@ func (sfc *SyncFileClient) Send(ip, file string) (err error) {
 
 	stream, err := c.SendFile(context.Background())
 	if err != nil {
+		sfc.resChan <- err.Error()
 		return
 	}
 
@@ -339,6 +340,7 @@ func (sfc *SyncFileClient) Send(ip, file string) (err error) {
 		}
 
 		if err != nil {
+			sfc.resChan <- err.Error()
 			return err
 		}
 
