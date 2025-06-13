@@ -290,44 +290,49 @@ func (sfc *SyncFileClient) ReturnWsData(data string) (err error) {
 
 func (sfc *SyncFileClient) Send(ip, file string) (err error) {
 	defer sfc.wg.Done()
+
+	defer func() {
+		if err != nil {
+			sfc.resChan <- err.Error()
+		}
+	}()
+
 	server := fmt.Sprintf("%s:%d", ip, config.RpcPort)
 	conn, err := grpc.NewClient(server, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		sfc.resChan <- err.Error()
-		return
+		return err
 	}
-
 	defer conn.Close()
 
 	c := pb.NewFileTransferServiceClient(conn)
 
 	stream, err := c.SendFile(context.Background())
 	if err != nil {
-		sfc.resChan <- err.Error()
-		return
+		return err
 	}
 
 	buffer := make([]byte, 8092)
 
 	f, err := os.Open(file)
 	if err != nil {
-		return
+		return err
 	}
-
 	defer f.Close()
 
 	for {
-		b, err := f.Read(buffer)
-		if err == io.EOF {
+		b, errRead := f.Read(buffer)
+		if errRead == io.EOF {
 			break
 		}
-
+		if errRead != nil {
+			err = errRead
+			return err
+		}
 		if b == 0 {
 			break
 		}
 
 		if err = stream.Send(&pb.FileMessage{Byte: buffer[:b], Name: filepath.Base(file), Ip: ip}); err != nil {
-			sfc.resChan <- err.Error()
 			return err
 		}
 	}
@@ -335,13 +340,12 @@ func (sfc *SyncFileClient) Send(ip, file string) (err error) {
 	stream.CloseSend()
 
 	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
+		resp, errRecv := stream.Recv()
+		if errRecv == io.EOF {
 			break
 		}
-
-		if err != nil {
-			sfc.resChan <- err.Error()
+		if errRecv != nil {
+			err = errRecv
 			return err
 		}
 

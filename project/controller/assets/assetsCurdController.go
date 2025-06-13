@@ -11,8 +11,7 @@ import (
 	"path/filepath"
 )
 
-// 服务器的增删改查
-
+// ListForm 服务器的增删改查
 type ListForm struct {
 	Ip         string `form:"ip,omitempty" json:"ip"`
 	Project    string `form:"project,omitempty" json:"project"`

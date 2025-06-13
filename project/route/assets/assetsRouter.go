@@ -22,12 +22,13 @@ func Router(r *gin.Engine) {
 		assets.POST("/program/add", ac.AddProgramOperateController)
 		assets.POST("/program/del", ac.DelProgramUpdateRecordController)
 		assets.GET("/program/list", ac.ProgramListController)
-		//assets.Any("/terminal/*path", ac.WebTerminalController)
 		assets.GET("/terminal", ac.WebTerminalController)
 		// 服务器的增删改查接口
 		assets.POST("/upload", ac.UploadController)
 		assets.POST("/add", ac.CreateController)
 		assets.POST("/del", ac.DeleteController)
 		assets.POST("/update", ac.UpdateController)
+		// 服务器的资源可视化监控
+		assets.GET("/res-vis", ac.GetServerStatusController)
 	}
 }

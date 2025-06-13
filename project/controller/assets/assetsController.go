@@ -10,9 +10,6 @@ import (
 	"github.com/ingoxx/go-gin/project/service"
 	"github.com/mitchellh/mapstructure"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
-	"strings"
 )
 
 var (
@@ -350,63 +347,6 @@ func ProgramListController(ctx *gin.Context) {
 	})
 }
 
-// WebTerminalControllerOut 废弃
-func WebTerminalControllerOut(ctx *gin.Context) {
-	var wtq WebTerminalQuery
-	var am model.AssetsModel
-	if err := ctx.ShouldBind(&wtq); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
-			"code":    10001,
-		})
-		return
-	}
-
-	ip, err := am.GetTerminalIp(wtq.ID)
-	if err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": err.Error(),
-			"code":    10002,
-		})
-		return
-	}
-
-	// 代理请求
-	terminalUrl := fmt.Sprintf("http://%s:17600", ip)
-	target, err := url.Parse(terminalUrl)
-	if err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": err.Error(),
-			"code":    10003,
-		})
-		return
-	}
-
-	proxy := httputil.NewSingleHostReverseProxy(target)
-	// 修改请求路径，去除/terminal前缀
-	originalDirector := proxy.Director
-	proxy.Director = func(req *http.Request) {
-		originalDirector(req)
-		req.URL.Path = strings.TrimPrefix(req.URL.Path, "/assets/terminal")
-		if req.URL.Path == "" {
-			req.URL.Path = "/"
-		}
-		// 可选：设置正确的Host和Header
-		req.Host = target.Host
-		req.Header.Set("X-Forwarded-Host", req.Host)
-	}
-
-	// 处理WebSocket升级请求
-	proxy.ModifyResponse = func(resp *http.Response) error {
-		if resp.StatusCode == http.StatusSwitchingProtocols {
-			return nil
-		}
-		return nil
-	}
-
-	proxy.ServeHTTP(ctx.Writer, ctx.Request)
-}
-
 // WebTerminalController 终端连接
 func WebTerminalController(ctx *gin.Context) {
 	conn, err := upGrader.Upgrade(ctx.Writer, ctx.Request, nil)
@@ -420,5 +360,53 @@ func WebTerminalController(ctx *gin.Context) {
 	if err := NewWebTerminal(conn, ctx).Ssh(); err != nil {
 		logger.Error(fmt.Sprintf("failed to ssh %s, errMsg: %s", serverIp, err.Error()))
 	}
+}
 
+func GetServerStatusController(ctx *gin.Context) {
+	var clf GetServerStatusQuery
+	if err := ctx.ShouldBind(&clf); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+			"code":    10001,
+		})
+		return
+	}
+
+	cpuData, err := NewCpuLoadMonitor(clf.Ip).GetCpuLoadData()
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10002,
+		})
+
+		return
+	}
+
+	memData, err := NewCpuLoadMonitor(clf.Ip).GetMemUsageData()
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10002,
+		})
+
+		return
+	}
+
+	diskData, err := NewCpuLoadMonitor(clf.Ip).GetDiskUsageData()
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10002,
+		})
+
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"cpu":     cpuData,
+		"mem":     memData,
+		"disk":    diskData,
+		"message": "ok",
+		"code":    10000,
+	})
 }

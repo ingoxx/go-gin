@@ -20,3 +20,7 @@ type ProgramListForm struct {
 type WebTerminalQuery struct {
 	ID uint `json:"server_id" form:"server_id" binding:"required"`
 }
+
+type GetServerStatusQuery struct {
+	Ip string `json:"ip" form:"ip" binding:"required"`
+}
