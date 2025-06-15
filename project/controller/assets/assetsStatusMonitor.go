@@ -44,7 +44,7 @@ type MemUsageData struct {
 
 type MemUsageChartRow struct {
 	Time           string  `json:"时间"`
-	MemUsedPercent float64 `json:"内存使用率"`
+	MemUsedPercent float64 `json:"内存使用率(百分比)"`
 }
 
 // DiskUsageEntry 根目录监控可视化
@@ -60,7 +60,7 @@ type DiskUsageData struct {
 
 type DiskUsageChartRow struct {
 	Time            string  `json:"时间"`
-	DiskUsedPercent float64 `json:"根目录使用率"`
+	DiskUsedPercent float64 `json:"根目录使用率(百分比)"`
 }
 
 type ServerResourcesMonitor struct {
@@ -124,7 +124,7 @@ func (c *ServerResourcesMonitor) GetMemUsageData() (MemUsageData, error) {
 	}
 
 	data.Rows = rows
-	data.Columns = []string{"时间", "内存使用率"}
+	data.Columns = []string{"时间", "内存使用率(百分比)"}
 
 	return data, nil
 }
@@ -152,7 +152,7 @@ func (c *ServerResourcesMonitor) GetDiskUsageData() (DiskUsageData, error) {
 	}
 
 	data.Rows = rows
-	data.Columns = []string{"时间", "根目录使用率"}
+	data.Columns = []string{"时间", "根目录使用率(百分比)"}
 
 	return data, nil
 }

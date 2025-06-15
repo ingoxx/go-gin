@@ -54,6 +54,7 @@ func (WhileUrls) OperateWhileList(url string) bool {
 		"/cluster/list",
 		"/assets/ws",
 		"/assets/file/ws",
+		"/assets/res-vis",
 	}
 
 	for i := 0; i < len(wls); i++ {
