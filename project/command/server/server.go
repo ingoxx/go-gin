@@ -20,6 +20,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 )
 
 var (
@@ -31,6 +32,7 @@ type server struct {
 	pb.UnimplementedFileTransferServiceServer
 	pb.UnimplementedStreamCheckSystemLogServiceServer
 	pb.UnimplementedClusterOperateServiceServer
+	lock *sync.Mutex
 }
 
 type runScriptData struct {
@@ -341,6 +343,8 @@ func (s *server) ClusterLeaveSwarm(req *pb.StreamClusterOperateReq, stream pb.Cl
 
 // SendFile 接收文件并返回文件md5
 func (s *server) SendFile(stream pb.FileTransferService_SendFileServer) (err error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	log.Println("received SendFile call")
 	if err = s.ProcessMsg(stream); err != nil {
 		log.Println(err)
@@ -486,10 +490,10 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	pb.RegisterStreamUpdateProgramServiceServer(s, &server{})
-	pb.RegisterFileTransferServiceServer(s, &server{})
-	pb.RegisterStreamCheckSystemLogServiceServer(s, &server{})
-	pb.RegisterClusterOperateServiceServer(s, &server{})
+	pb.RegisterStreamUpdateProgramServiceServer(s, &server{lock: new(sync.Mutex)})
+	pb.RegisterFileTransferServiceServer(s, &server{lock: new(sync.Mutex)})
+	pb.RegisterStreamCheckSystemLogServiceServer(s, &server{lock: new(sync.Mutex)})
+	pb.RegisterClusterOperateServiceServer(s, &server{lock: new(sync.Mutex)})
 	go dockerSwarmStatusCheck.Check(ipAddress)
 	log.Printf("server listening at %v", lis.Addr())
 

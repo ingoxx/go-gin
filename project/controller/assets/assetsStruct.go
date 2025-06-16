@@ -22,5 +22,6 @@ type WebTerminalQuery struct {
 }
 
 type GetServerStatusQuery struct {
-	Ip string `json:"ip" form:"ip" binding:"required"`
+	Ip   string `json:"ip" form:"ip" binding:"required"`
+	Days uint   `json:"days" form:"days"`
 }

@@ -64,18 +64,28 @@ type DiskUsageChartRow struct {
 }
 
 type ServerResourcesMonitor struct {
-	Ip string
+	Ip   string
+	Days uint
 }
 
-func NewCpuLoadMonitor(ip string) *ServerResourcesMonitor {
+func NewCpuLoadMonitor(clf GetServerStatusQuery) *ServerResourcesMonitor {
 	return &ServerResourcesMonitor{
-		Ip: ip,
+		Ip:   clf.Ip,
+		Days: clf.Days,
 	}
 }
 
 func (c *ServerResourcesMonitor) GetCpuLoadData() (CpuLoadData, error) {
 	var rows []CpuChartRow
 	var data CpuLoadData
+	var startTs int64
+	var endTs int64
+
+	if c.Days > 0 {
+		startTs = time.Now().Add(-time.Duration(c.Days) * 24 * time.Hour).Unix()
+		endTs = time.Now().Unix()
+	}
+
 	key := fmt.Sprintf("%s%s", cpuKey, c.Ip)
 	values, err := dao.Rds.GetServerCpuLoadData(key)
 	if err != nil {
@@ -85,11 +95,13 @@ func (c *ServerResourcesMonitor) GetCpuLoadData() (CpuLoadData, error) {
 	for i := len(values) - 1; i >= 0; i-- { // 倒序取出数据
 		var entry CpuLoadEntry
 		if err := json.Unmarshal([]byte(values[i]), &entry); err == nil {
-			t := time.Unix(entry.Timestamp, 0).Format("15:04:05")
-			rows = append(rows, CpuChartRow{
-				Time: t,
-				Load: entry.Load1, // 你也可以换成 Load5 / Load15
-			})
+			t := time.Unix(entry.Timestamp, 0).Format("01/02 15:04")
+			if entry.Timestamp >= startTs && entry.Timestamp <= endTs {
+				rows = append(rows, CpuChartRow{
+					Time: t,
+					Load: entry.Load1,
+				})
+			}
 		} else {
 			return data, err
 		}
@@ -104,6 +116,14 @@ func (c *ServerResourcesMonitor) GetCpuLoadData() (CpuLoadData, error) {
 func (c *ServerResourcesMonitor) GetMemUsageData() (MemUsageData, error) {
 	var rows []MemUsageChartRow
 	var data MemUsageData
+	var startTs int64
+	var endTs int64
+
+	if c.Days > 0 {
+		startTs = time.Now().Add(-time.Duration(c.Days) * 24 * time.Hour).Unix()
+		endTs = time.Now().Unix()
+	}
+
 	key := fmt.Sprintf("%s%s", ramKey, c.Ip)
 	values, err := dao.Rds.GetServerCpuLoadData(key)
 	if err != nil {
@@ -113,11 +133,13 @@ func (c *ServerResourcesMonitor) GetMemUsageData() (MemUsageData, error) {
 	for i := len(values) - 1; i >= 0; i-- { // 倒序取出数据
 		var entry MemUsageEntry
 		if err := json.Unmarshal([]byte(values[i]), &entry); err == nil {
-			t := time.Unix(entry.Timestamp, 0).Format("15:04:05")
-			rows = append(rows, MemUsageChartRow{
-				Time:           t,
-				MemUsedPercent: entry.MemUsedPercent,
-			})
+			t := time.Unix(entry.Timestamp, 0).Format("01/02 15:04")
+			if entry.Timestamp >= startTs && entry.Timestamp <= endTs {
+				rows = append(rows, MemUsageChartRow{
+					Time:           t,
+					MemUsedPercent: entry.MemUsedPercent,
+				})
+			}
 		} else {
 			return data, err
 		}
@@ -132,6 +154,15 @@ func (c *ServerResourcesMonitor) GetMemUsageData() (MemUsageData, error) {
 func (c *ServerResourcesMonitor) GetDiskUsageData() (DiskUsageData, error) {
 	var rows []DiskUsageChartRow
 	var data DiskUsageData
+
+	var startTs int64
+	var endTs int64
+
+	if c.Days > 0 {
+		startTs = time.Now().Add(-time.Duration(c.Days) * 24 * time.Hour).Unix()
+		endTs = time.Now().Unix()
+	}
+
 	key := fmt.Sprintf("%s%s", diskKey, c.Ip)
 	values, err := dao.Rds.GetServerCpuLoadData(key)
 	if err != nil {
@@ -141,11 +172,13 @@ func (c *ServerResourcesMonitor) GetDiskUsageData() (DiskUsageData, error) {
 	for i := len(values) - 1; i >= 0; i-- { // 倒序取出数据
 		var entry DiskUsageEntry
 		if err := json.Unmarshal([]byte(values[i]), &entry); err == nil {
-			t := time.Unix(entry.Timestamp, 0).Format("15:04:05")
-			rows = append(rows, DiskUsageChartRow{
-				Time:            t,
-				DiskUsedPercent: entry.DiskUsedPercent,
-			})
+			t := time.Unix(entry.Timestamp, 0).Format("01/02 15:04")
+			if entry.Timestamp >= startTs && entry.Timestamp <= endTs {
+				rows = append(rows, DiskUsageChartRow{
+					Time:            t,
+					DiskUsedPercent: entry.DiskUsedPercent,
+				})
+			}
 		} else {
 			return data, err
 		}
@@ -155,4 +188,16 @@ func (c *ServerResourcesMonitor) GetDiskUsageData() (DiskUsageData, error) {
 	data.Columns = []string{"时间", "根目录使用率(百分比)"}
 
 	return data, nil
+}
+
+func (c *ServerResourcesMonitor) getDayStartTimestamps(days int) []int64 {
+	var points []int64
+	now := time.Now()
+	location := now.Location()
+	for i := days - 1; i >= 0; i-- {
+		day := now.AddDate(0, 0, -i)
+		dayStart := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, location)
+		points = append(points, dayStart.Unix())
+	}
+	return points
 }
