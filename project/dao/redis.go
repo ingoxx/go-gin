@@ -299,7 +299,7 @@ func (r *RedisDb) GetProcessStatus() (sm map[string]string, err error) {
 }
 
 func (r *RedisDb) GetServerCpuLoadData(key string) ([]string, error) {
-	values, err := r.pool.LRange(key, 0, -1).Result()
+	values, err := r.pool.LRange(key, 0, 50).Result()
 	if err != nil {
 		return nil, err
 	}
