@@ -372,11 +372,19 @@ func GetServerStatusController(ctx *gin.Context) {
 		return
 	}
 
+	if err := NewValidateData(validate).ValidateStruct(clf); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": err.Error(),
+			"code":    10002,
+		})
+		return
+	}
+
 	cpuData, err := NewCpuLoadMonitor(clf).GetCpuLoadData()
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
-			"code":    10002,
+			"code":    10003,
 		})
 
 		return
