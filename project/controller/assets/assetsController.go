@@ -380,40 +380,18 @@ func GetServerStatusController(ctx *gin.Context) {
 		return
 	}
 
-	cpuData, err := NewCpuLoadMonitor(clf).GetCpuLoadData()
+	status, err := NewCpuLoadMonitor(clf).GetServerStatus()
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"message": err.Error(),
 			"code":    10003,
 		})
-
-		return
-	}
-
-	memData, err := NewCpuLoadMonitor(clf).GetMemUsageData()
-	if err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": err.Error(),
-			"code":    10002,
-		})
-
-		return
-	}
-
-	diskData, err := NewCpuLoadMonitor(clf).GetDiskUsageData()
-	if err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": err.Error(),
-			"code":    10002,
-		})
-
-		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"cpu":     cpuData,
-		"mem":     memData,
-		"disk":    diskData,
+		"cpu":     status["cpu"].CpuData,
+		"mem":     status["ram"].RamData,
+		"disk":    status["disk"].DiskData,
 		"message": "ok",
 		"code":    10000,
 	})

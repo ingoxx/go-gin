@@ -2,10 +2,12 @@ package assets
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/ingoxx/go-gin/project/dao"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -15,6 +17,16 @@ const (
 	diskKey = "disk_usage_" // 这里只监控根目录的使用率
 	maxData = 8
 )
+
+type ChartsData struct {
+	Columns []string     `json:"columns"`
+	Rows    []ChartsRows `json:"rows"`
+}
+
+type ChartsRows struct {
+	Time string  `json:"time"`
+	Data float64 `json:"data"`
+}
 
 // CpuLoadEntry cpu负载监控可视化
 type CpuLoadEntry struct {
@@ -30,8 +42,8 @@ type CpuLoadData struct {
 }
 
 type CpuChartRow struct {
-	Time string  `json:"时间"`
-	Data float64 `json:"CPU负载"`
+	Time string  `json:"time"`
+	Data float64 `json:"data"`
 }
 
 // MemUsageEntry 内存监控可视化
@@ -67,184 +79,68 @@ type DiskUsageChartRow struct {
 }
 
 type ServerResourcesMonitor struct {
-	Ip   string
-	Days uint
+	lock  *sync.Mutex
+	wg    *sync.WaitGroup
+	limit chan struct{}
+	Ip    string
+	Days  uint
 }
 
-type getServerData struct {
-	Rows  interface{}
-	Entry interface{}
-	Key   string
+type GetServerData struct {
+	CpuData  ChartsData
+	RamData  ChartsData
+	DiskData ChartsData
+	Error    error
 }
 
 func NewCpuLoadMonitor(clf GetServerStatusQuery) *ServerResourcesMonitor {
 	return &ServerResourcesMonitor{
-		Ip:   clf.Ip,
-		Days: clf.Days,
+		Ip:    clf.Ip,
+		Days:  clf.Days,
+		lock:  new(sync.Mutex),
+		wg:    new(sync.WaitGroup),
+		limit: make(chan struct{}, 10),
 	}
 }
 
-func (c *ServerResourcesMonitor) GetCpuLoadData() (CpuLoadData, error) {
-	var rows []CpuChartRow
-	var data CpuLoadData
-
+func (c *ServerResourcesMonitor) getCpuLoadData() (ChartsData, error) {
+	var data ChartsData
+	var entry CpuLoadEntry
 	key := fmt.Sprintf("%s%s", cpuKey, c.Ip)
 	values, err := dao.Rds.GetServerCpuLoadData(key)
 	if err != nil {
 		return data, err
 	}
 
-	var dateRangeCount = make(map[int64]float64)
-	dateRange := c.getDayStartTimestamps()
-
-	for i1 := 0; i1 < len(dateRange); i1++ {
-		var dataCount int                  // 统计某个日期的累加次数获取平均值
-		var dataCurrentDayCount int        // 获取当天的最新50条
-		for i := 0; i < len(values); i++ { // 倒序取出数据
-			var entry CpuLoadEntry
-
-			if err := json.Unmarshal([]byte(values[i]), &entry); err == nil {
-				t := time.Unix(entry.Timestamp, 0).Format("01/02 15:04:05")
-				if len(dateRange) > 1 { // 获取2天以上的数据
-					if dateRange[(len(dateRange)-1)] == dateRange[i1] { // 获取当天的最新数据
-						if dataCurrentDayCount == maxData {
-							break
-						}
-						rows = append(rows, CpuChartRow{
-							Time: t,
-							Data: entry.Load1,
-						})
-						dataCurrentDayCount++
-					} else { // 获取近几天除了当天的数据
-						end := time.Unix(dateRange[i1], 0).Add(-time.Duration(1) * 24 * time.Hour).Unix()
-						if _, ok := dateRangeCount[dateRange[i1]]; !ok {
-							dateRangeCount[dateRange[i1]] = 0
-						}
-						if entry.Timestamp >= end && entry.Timestamp <= dateRange[i1] {
-							dateRangeCount[dateRange[i1]] += entry.Load1
-						}
-						dataCount++
-					}
-				} else { // 这里是默认获取1天最新的数据
-					if len(rows) == maxData {
-						break
-					}
-					rows = append(rows, CpuChartRow{
-						Time: t,
-						Data: entry.Load1,
-					})
-				}
-			} else {
-				return data, err
-			}
-		}
-		// 获取2天以上的数据并计算平均值
-		if len(dateRange) > 1 && dateRange[(len(dateRange)-1)] != dateRange[i1] {
-			var load1 float64
-			t := time.Unix(dateRange[i1], 0).Format("01/02 15:04:05")
-			if dateRangeCount[dateRange[i1]] == 0 {
-				load1 = 0
-			} else {
-				load1, err = strconv.ParseFloat(fmt.Sprintf("%.2f", dateRangeCount[dateRange[i1]]/float64(dataCount)), 64)
-				if err != nil {
-					return data, err
-				}
-			}
-			rows = append(rows, CpuChartRow{
-				Time: t,
-				Data: load1,
-			})
-		}
+	data, err = c.generic(entry, values)
+	if err != nil {
+		return data, err
 	}
 
-	data.Rows = rows
-	data.Columns = []string{"时间", "CPU负载"}
-
 	return data, nil
+
 }
 
-func (c *ServerResourcesMonitor) GetMemUsageData() (MemUsageData, error) {
-	var rows []MemUsageChartRow
-	var data MemUsageData
-
+func (c *ServerResourcesMonitor) getMemUsageData() (ChartsData, error) {
+	var data ChartsData
+	var entry MemUsageEntry
 	key := fmt.Sprintf("%s%s", ramKey, c.Ip)
 	values, err := dao.Rds.GetServerCpuLoadData(key)
 	if err != nil {
 		return data, err
 	}
 
-	var dateRangeCount = make(map[int64]float64)
-	dateRange := c.getDayStartTimestamps()
-
-	for i1 := 0; i1 < len(dateRange); i1++ {
-		var dataCount int                  // 统计某个日期的累加次数获取平均值
-		var dataCurrentDayCount int        // 获取当天的最新50条
-		for i := 0; i < len(values); i++ { // 倒序取出数据
-			var entry MemUsageEntry
-
-			if err := json.Unmarshal([]byte(values[i]), &entry); err == nil {
-				t := time.Unix(entry.Timestamp, 0).Format("01/02 15:04:05")
-				if len(dateRange) > 1 { // 获取2天以上的数据
-					if dateRange[(len(dateRange)-1)] == dateRange[i1] { // 获取当天的最新数据
-						if dataCurrentDayCount == maxData {
-							break
-						}
-						rows = append(rows, MemUsageChartRow{
-							Time: t,
-							Data: entry.MemUsedPercent,
-						})
-						dataCurrentDayCount++
-					} else { // 获取近几天除了当天的数据
-						end := time.Unix(dateRange[i1], 0).Add(-time.Duration(1) * 24 * time.Hour).Unix()
-						if _, ok := dateRangeCount[dateRange[i1]]; !ok {
-							dateRangeCount[dateRange[i1]] = 0
-						}
-						if entry.Timestamp >= end && entry.Timestamp <= dateRange[i1] {
-							dateRangeCount[dateRange[i1]] += entry.MemUsedPercent
-						}
-						dataCount++
-					}
-				} else { // 这里是默认获取1天最新的数据
-					if len(rows) == maxData {
-						break
-					}
-					rows = append(rows, MemUsageChartRow{
-						Time: t,
-						Data: entry.MemUsedPercent,
-					})
-				}
-			} else {
-				return data, err
-			}
-		}
-		// 获取2天以上的数据并计算平均值
-		if len(dateRange) > 1 && dateRange[(len(dateRange)-1)] != dateRange[i1] {
-			var load1 float64
-			t := time.Unix(dateRange[i1], 0).Format("01/02 15:04:05")
-			if dateRangeCount[dateRange[i1]] == 0 {
-				load1 = 0
-			} else {
-				load1, err = strconv.ParseFloat(fmt.Sprintf("%.2f", dateRangeCount[dateRange[i1]]/float64(dataCount)), 64)
-				if err != nil {
-					return data, err
-				}
-			}
-			rows = append(rows, MemUsageChartRow{
-				Time: t,
-				Data: load1,
-			})
-		}
+	data, err = c.generic(entry, values)
+	if err != nil {
+		return data, err
 	}
-
-	data.Rows = rows
-	data.Columns = []string{"时间", "内存使用率(百分比)"}
 
 	return data, nil
 }
 
-func (c *ServerResourcesMonitor) GetDiskUsageData() (DiskUsageData, error) {
-	var rows []DiskUsageChartRow
-	var data DiskUsageData
+func (c *ServerResourcesMonitor) getDiskUsageData() (ChartsData, error) {
+	var data ChartsData
+	var entry DiskUsageEntry
 
 	key := fmt.Sprintf("%s%s", diskKey, c.Ip)
 	values, err := dao.Rds.GetServerCpuLoadData(key)
@@ -252,76 +148,16 @@ func (c *ServerResourcesMonitor) GetDiskUsageData() (DiskUsageData, error) {
 		return data, err
 	}
 
-	var dateRangeCount = make(map[int64]float64)
-	dateRange := c.getDayStartTimestamps()
-
-	for i1 := 0; i1 < len(dateRange); i1++ {
-		var dataCount int                  // 统计某个日期的累加次数获取平均值
-		var dataCurrentDayCount int        // 获取当天的最新50条
-		for i := 0; i < len(values); i++ { // 倒序取出数据
-			var entry DiskUsageEntry
-
-			if err := json.Unmarshal([]byte(values[i]), &entry); err == nil {
-				t := time.Unix(entry.Timestamp, 0).Format("01/02 15:04:05")
-				if len(dateRange) > 1 { // 获取2天以上的数据
-					if dateRange[(len(dateRange)-1)] == dateRange[i1] { // 获取当天的最新数据
-						if dataCurrentDayCount == maxData {
-							break
-						}
-						rows = append(rows, DiskUsageChartRow{
-							Time: t,
-							Data: entry.DiskUsedPercent,
-						})
-						dataCurrentDayCount++
-					} else { // 获取近几天除了当天的数据
-						end := time.Unix(dateRange[i1], 0).Add(-time.Duration(1) * 24 * time.Hour).Unix()
-						if _, ok := dateRangeCount[dateRange[i1]]; !ok {
-							dateRangeCount[dateRange[i1]] = 0
-						}
-						if entry.Timestamp >= end && entry.Timestamp <= dateRange[i1] {
-							dateRangeCount[dateRange[i1]] += entry.DiskUsedPercent
-						}
-						dataCount++
-					}
-				} else { // 这里是默认获取1天最新的数据
-					if len(rows) == maxData {
-						break
-					}
-					rows = append(rows, DiskUsageChartRow{
-						Time: t,
-						Data: entry.DiskUsedPercent,
-					})
-				}
-			} else {
-				return data, err
-			}
-		}
-		// 获取2天以上的数据并计算平均值
-		if len(dateRange) > 1 && dateRange[(len(dateRange)-1)] != dateRange[i1] {
-			var load1 float64
-			t := time.Unix(dateRange[i1], 0).Format("01/02 15:04:05")
-			if dateRangeCount[dateRange[i1]] == 0 {
-				load1 = 0
-			} else {
-				load1, err = strconv.ParseFloat(fmt.Sprintf("%.2f", dateRangeCount[dateRange[i1]]/float64(dataCount)), 64)
-				if err != nil {
-					return data, err
-				}
-			}
-			rows = append(rows, DiskUsageChartRow{
-				Time: t,
-				Data: load1,
-			})
-		}
+	data, err = c.generic(entry, values)
+	if err != nil {
+		return data, err
 	}
-
-	data.Rows = rows
-	data.Columns = []string{"时间", "根目录使用率(百分比)"}
 
 	return data, nil
 }
 
 func (c *ServerResourcesMonitor) getDayStartTimestamps() []int64 {
+
 	var points []int64
 	now := time.Now()
 	location := now.Location()
@@ -336,4 +172,186 @@ func (c *ServerResourcesMonitor) getDayStartTimestamps() []int64 {
 	})
 
 	return points
+}
+
+func (c *ServerResourcesMonitor) GetServerStatus() (map[string]*GetServerData, error) {
+	var fd = make(map[string]*GetServerData)
+
+	var f = []func(){
+		func() {
+			defer c.wg.Done()
+			var gsd = new(GetServerData)
+			data, err := c.getDiskUsageData()
+			if err != nil {
+				gsd.Error = errors.Join(err)
+				return
+			}
+			gsd.DiskData = data
+			c.lock.Lock()
+			fd["disk"] = gsd
+			c.lock.Unlock()
+		},
+		func() {
+			defer c.wg.Done()
+			var gsd = new(GetServerData)
+			data, err := c.getMemUsageData()
+			if err != nil {
+				gsd.Error = errors.Join(err)
+				return
+			}
+			gsd.RamData = data
+			c.lock.Lock()
+			fd["ram"] = gsd
+			c.lock.Unlock()
+		},
+		func() {
+			defer c.wg.Done()
+			var gsd = new(GetServerData)
+			data, err := c.getCpuLoadData()
+			if err != nil {
+				gsd.Error = errors.Join(err)
+				return
+			}
+			gsd.CpuData = data
+			c.lock.Lock()
+			fd["cpu"] = gsd
+			c.lock.Unlock()
+		},
+	}
+
+	for _, v1 := range f {
+		c.wg.Add(1)
+		go func(fc func()) {
+			fc()
+		}(v1)
+	}
+
+	c.wg.Wait()
+
+	for v := range fd {
+		if fd[v].Error != nil {
+			return fd, fd[v].Error
+		}
+	}
+
+	return fd, nil
+}
+
+func (c *ServerResourcesMonitor) generic(tp interface{}, values []string) (ChartsData, error) {
+	var data ChartsData
+	var rows []ChartsRows
+	var err error
+
+	var dateRangeCount = make(map[int64]float64)
+	dateRange := c.getDayStartTimestamps()
+	for i1 := len(dateRange) - 1; i1 >= 0; i1-- {
+		var dataCount int                  // 统计某天的数据累加获取平均值
+		var dataCurrentDayCount int        // 获取当天的最新数据
+		for i := 0; i < len(values); i++ { // 倒序取出数据
+			//var entry DiskUsageEntry
+			parserEntry, f, err := c.parserEntry(tp, values[i])
+			if err == nil {
+				t := time.Unix(parserEntry, 0).Format("01/02 15:04:05")
+				if len(dateRange) > 1 { // 获取2天以上的数据
+					if dateRange[(len(dateRange)-1)] == dateRange[i1] { // 获取当天的最新数据
+						if dataCurrentDayCount == maxData {
+							break
+						}
+						rows = append(rows, ChartsRows{
+							Time: t,
+							Data: f,
+						})
+						dataCurrentDayCount++
+					} else { // 获取近几天除了当天的数据
+						end := time.Unix(dateRange[i1], 0).Add(-time.Duration(1) * 24 * time.Hour).Unix()
+						if _, ok := dateRangeCount[dateRange[i1]]; !ok {
+							dateRangeCount[dateRange[i1]] = 0
+						}
+						if parserEntry >= end && parserEntry <= dateRange[i1] {
+							dateRangeCount[dateRange[i1]] += f
+							dataCount++
+						}
+
+					}
+				} else { // 这里是默认获取1天最新的数据
+					if len(rows) == maxData {
+						break
+					}
+					rows = append(rows, ChartsRows{
+						Time: t,
+						Data: f,
+					})
+				}
+			} else {
+				return data, err
+			}
+		}
+		// 获取2天以上的数据并计算平均值
+		if len(dateRange) > 1 && dateRange[(len(dateRange)-1)] != dateRange[i1] {
+			var load1 float64
+			t := time.Unix(dateRange[i1], 0).Format("01/02 15:04:05")
+			if dateRangeCount[dateRange[i1]] == 0 {
+				load1 = 0
+			} else {
+				load1, err = strconv.ParseFloat(fmt.Sprintf("%.2f", dateRangeCount[dateRange[i1]]/float64(dataCount)), 64)
+				if err != nil {
+					return data, err
+				}
+			}
+			rows = append(rows, ChartsRows{
+				Time: t,
+				Data: load1,
+			})
+		}
+	}
+
+	sort.Slice(rows, func(i, j int) bool {
+		it := rows[i].Time
+		jt := rows[j].Time
+		ift := fmt.Sprintf("%d/%s", time.Now().Year(), it)
+		jft := fmt.Sprintf("%d/%s", time.Now().Year(), jt)
+		t1, err := time.Parse("2006/01/02 15:04:05", ift)
+		if err != nil {
+			panic(err)
+		}
+
+		t2, err := time.Parse("2006/01/02 15:04:05", jft)
+		if err != nil {
+			panic(err)
+		}
+
+		return t1.Unix() < t2.Unix()
+	})
+
+	data.Rows = rows
+	data.Columns = []string{"time", "data"}
+
+	return data, nil
+}
+
+func (c *ServerResourcesMonitor) parserEntry(target interface{}, val string) (int64, float64, error) {
+	var ts int64
+	var vd float64
+	switch target.(type) {
+	case DiskUsageEntry:
+		var entry DiskUsageEntry
+		if err := json.Unmarshal([]byte(val), &entry); err != nil {
+			return ts, vd, err
+		}
+		return entry.Timestamp, entry.DiskUsedPercent, nil
+	case CpuLoadEntry:
+		var entry CpuLoadEntry
+		if err := json.Unmarshal([]byte(val), &entry); err != nil {
+			return ts, vd, err
+		}
+		return entry.Timestamp, entry.Load1, nil
+	case MemUsageEntry:
+		var entry MemUsageEntry
+		if err := json.Unmarshal([]byte(val), &entry); err != nil {
+			return ts, vd, err
+		}
+		return entry.Timestamp, entry.MemUsedPercent, nil
+	}
+
+	return ts, vd, nil
 }
