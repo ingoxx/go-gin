@@ -38,7 +38,7 @@ func InitPoolRds() (err error) {
 
 type Md struct {
 	Count uint
-	Rtime uint64
+	RTime uint64
 	Wait  uint64
 }
 
@@ -229,11 +229,11 @@ func (r *RedisDb) ReqFrequencyLimit(host string) (err error) {
 	vd, ok := r.md["visit_"+host]
 	if !ok {
 		mdd.Count = 1
-		mdd.Rtime = ut + 1
+		mdd.RTime = ut + 1
 		r.md["visit_"+host] = mdd
 		vd = r.md["visit_"+host]
 	} else if vd.Count <= 1 {
-		vd.Rtime = ut + 1
+		vd.RTime = ut + 1
 		r.md["visit_"+host] = vd
 	}
 
@@ -242,7 +242,7 @@ func (r *RedisDb) ReqFrequencyLimit(host string) (err error) {
 		return
 	}
 
-	if vd.Rtime >= ut && vd.Count > uint(config.Frequency) {
+	if vd.RTime >= ut && vd.Count > uint(config.Frequency) {
 		vd.Count = 1
 		vd.Wait = ut + 10
 		r.md["visit_"+host] = vd
@@ -252,7 +252,7 @@ func (r *RedisDb) ReqFrequencyLimit(host string) (err error) {
 
 	vd.Count += 1
 
-	if ut > vd.Rtime {
+	if ut > vd.RTime {
 		vd.Count = 1
 		vd.Wait = 0
 	}

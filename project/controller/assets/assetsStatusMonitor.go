@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	cpuKey  = "cpu_loads_"
-	ramKey  = "mem_usage_"
-	diskKey = "disk_usage_" // 这里只监控根目录的使用率
-	maxData = 8
+	cpuKey            = "cpu_loads_"
+	ramKey            = "mem_usage_"
+	diskKey           = "disk_usage_" // 这里只监控根目录的使用率
+	maxData           = 8
+	maxCurrentDayData = 3000
 )
 
 type ChartsData struct {
@@ -245,24 +246,16 @@ func (c *ServerResourcesMonitor) generic(tp interface{}, values []string) (Chart
 	var dateRangeCount = make(map[int64]float64)
 	dateRange := c.getDayStartTimestamps()
 	for i1 := len(dateRange) - 1; i1 >= 0; i1-- {
-		var dataCount int                  // 统计某天的数据累加获取平均值
-		var dataCurrentDayCount int        // 获取当天的最新数据
+		var dataCount int // 统计某天的数据累加获取平均值
+		//var dataCurrentDayCount int        // 获取当天的最新数据
 		for i := 0; i < len(values); i++ { // 倒序取出数据
 			//var entry DiskUsageEntry
 			parserEntry, f, err := c.parserEntry(tp, values[i])
 			if err == nil {
-				t := time.Unix(parserEntry, 0).Format("01/02 15:04:05")
+				//t := time.Unix(parserEntry, 0).Format("01/02 15:04:05")
 				if len(dateRange) > 1 { // 获取2天以上的数据
-					if dateRange[(len(dateRange)-1)] == dateRange[i1] { // 获取当天的最新数据
-						if dataCurrentDayCount == maxData {
-							break
-						}
-						rows = append(rows, ChartsRows{
-							Time: t,
-							Data: f,
-						})
-						dataCurrentDayCount++
-					} else { // 获取近几天除了当天的数据
+					if dateRange[(len(dateRange)-1)] != dateRange[i1] { // 获取当天的最新数据
+						// 获取近几天除了当天的数据
 						end := time.Unix(dateRange[i1], 0).Add(-time.Duration(1) * 24 * time.Hour).Unix()
 						if _, ok := dateRangeCount[dateRange[i1]]; !ok {
 							dateRangeCount[dateRange[i1]] = 0
@@ -271,16 +264,7 @@ func (c *ServerResourcesMonitor) generic(tp interface{}, values []string) (Chart
 							dateRangeCount[dateRange[i1]] += f
 							dataCount++
 						}
-
 					}
-				} else { // 这里是默认获取1天最新的数据
-					if len(rows) == maxData {
-						break
-					}
-					rows = append(rows, ChartsRows{
-						Time: t,
-						Data: f,
-					})
 				}
 			} else {
 				return data, err
@@ -289,7 +273,7 @@ func (c *ServerResourcesMonitor) generic(tp interface{}, values []string) (Chart
 		// 获取2天以上的数据并计算平均值
 		if len(dateRange) > 1 && dateRange[(len(dateRange)-1)] != dateRange[i1] {
 			var load1 float64
-			t := time.Unix(dateRange[i1], 0).Format("01/02 15:04:05")
+			t := time.Unix(dateRange[i1], 0).Format("01/02 15:04")
 			if dateRangeCount[dateRange[i1]] == 0 {
 				load1 = 0
 			} else {
@@ -305,17 +289,32 @@ func (c *ServerResourcesMonitor) generic(tp interface{}, values []string) (Chart
 		}
 	}
 
+	var qd []ChartsRows
+	if len(values) > 3000 {
+		qd, err = c.querySegmentedData(values[:3000], tp)
+		if err != nil {
+			return data, err
+		}
+	} else {
+		qd, err = c.querySegmentedData(values[:], tp)
+		if err != nil {
+			return data, err
+		}
+	}
+
+	rows = append(rows, qd...)
+
 	sort.Slice(rows, func(i, j int) bool {
 		it := rows[i].Time
 		jt := rows[j].Time
 		ift := fmt.Sprintf("%d/%s", time.Now().Year(), it)
 		jft := fmt.Sprintf("%d/%s", time.Now().Year(), jt)
-		t1, err := time.Parse("2006/01/02 15:04:05", ift)
+		t1, err := time.Parse("2006/01/02 15:04", ift)
 		if err != nil {
 			panic(err)
 		}
 
-		t2, err := time.Parse("2006/01/02 15:04:05", jft)
+		t2, err := time.Parse("2006/01/02 15:04", jft)
 		if err != nil {
 			panic(err)
 		}
@@ -354,4 +353,64 @@ func (c *ServerResourcesMonitor) parserEntry(target interface{}, val string) (in
 	}
 
 	return ts, vd, nil
+}
+
+func (c *ServerResourcesMonitor) querySegmentedData(values []string, tp interface{}) ([]ChartsRows, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	end := time.Now().Unix()
+	start := end - 24*3600
+
+	segmentCount := 7
+	interval := int64(4 * 3600) // 4 小时
+	segments := make([][]float64, segmentCount)
+	labels := make([]string, segmentCount)
+
+	for i := 0; i < segmentCount; i++ {
+		segStart := start + int64(i)*interval
+		labels[i] = time.Unix(segStart, 0).Format("01/02 15:04") // eg: 06-16 00:00
+	}
+
+	for i := 0; i < len(values); i++ {
+		timestamp, f, err := c.parserEntry(tp, values[i])
+		if err != nil {
+			return []ChartsRows{}, err
+		}
+
+		if timestamp < start || timestamp > end {
+			continue
+		}
+
+		index := int((timestamp - start) / interval)
+		if index >= 0 && index < segmentCount {
+			segments[index] = append(segments[index], f)
+		}
+	}
+
+	var rows []ChartsRows
+	for i, group := range segments {
+		if len(group) == 0 {
+			timestamp, f, err := c.parserEntry(tp, values[0])
+			t := time.Unix(timestamp, 0).Format("01/02 15:04")
+			if err != nil {
+				return rows, err
+			}
+			rows = append(rows, ChartsRows{
+				Time: t,
+				Data: f,
+			})
+			continue
+		}
+		sum := 0.0
+		for _, item := range group {
+			sum += item
+		}
+		avg := sum / float64(len(group))
+		rows = append(rows, ChartsRows{
+			Time: labels[i],
+			Data: avg,
+		})
+	}
+
+	return rows, nil
 }
