@@ -176,65 +176,68 @@ func (c *ServerResourcesMonitor) getDayStartTimestamps() []int64 {
 }
 
 func (c *ServerResourcesMonitor) GetServerStatus() (map[string]*GetServerData, error) {
-	var fd = make(map[string]*GetServerData)
+	fd := make(map[string]*GetServerData)
 
-	var f = []func(){
-		func() {
-			defer c.wg.Done()
-			var gsd = new(GetServerData)
-			data, err := c.getDiskUsageData()
-			if err != nil {
-				gsd.Error = errors.Join(err)
-				return
-			}
-			gsd.DiskData = data
-			c.lock.Lock()
-			fd["disk"] = gsd
-			c.lock.Unlock()
+	type taskItem struct {
+		key  string
+		task func() (*GetServerData, error)
+	}
+
+	tasks := []taskItem{
+		{
+			key: "disk",
+			task: func() (*GetServerData, error) {
+				data, err := c.getDiskUsageData()
+				if err != nil {
+					return &GetServerData{Error: err}, nil
+				}
+				return &GetServerData{DiskData: data}, nil
+			},
 		},
-		func() {
-			defer c.wg.Done()
-			var gsd = new(GetServerData)
-			data, err := c.getMemUsageData()
-			if err != nil {
-				gsd.Error = errors.Join(err)
-				return
-			}
-			gsd.RamData = data
-			c.lock.Lock()
-			fd["ram"] = gsd
-			c.lock.Unlock()
+		{
+			key: "ram",
+			task: func() (*GetServerData, error) {
+				data, err := c.getMemUsageData()
+				if err != nil {
+					return &GetServerData{Error: err}, nil
+				}
+				return &GetServerData{RamData: data}, nil
+			},
 		},
-		func() {
-			defer c.wg.Done()
-			var gsd = new(GetServerData)
-			data, err := c.getCpuLoadData()
-			if err != nil {
-				gsd.Error = errors.Join(err)
-				return
-			}
-			gsd.CpuData = data
-			c.lock.Lock()
-			fd["cpu"] = gsd
-			c.lock.Unlock()
+		{
+			key: "cpu",
+			task: func() (*GetServerData, error) {
+				data, err := c.getCpuLoadData()
+				if err != nil {
+					return &GetServerData{Error: err}, nil
+				}
+				return &GetServerData{CpuData: data}, nil
+			},
 		},
 	}
 
-	for _, v1 := range f {
+	for _, t := range tasks {
 		c.wg.Add(1)
-		go func(fc func()) {
-			fc()
-		}(v1)
+		go func(key string, task func() (*GetServerData, error)) {
+			defer c.wg.Done()
+			gsd, _ := task()
+			c.lock.Lock()
+			fd[key] = gsd
+			c.lock.Unlock()
+		}(t.key, t.task)
 	}
 
 	c.wg.Wait()
 
-	for v := range fd {
-		if fd[v].Error != nil {
-			return fd, fd[v].Error
+	var allErrs []error
+	for _, v := range fd {
+		if v.Error != nil {
+			allErrs = append(allErrs, v.Error)
 		}
 	}
-
+	if len(allErrs) > 0 {
+		return fd, errors.Join(allErrs...)
+	}
 	return fd, nil
 }
 
@@ -358,30 +361,44 @@ func (c *ServerResourcesMonitor) parserEntry(target interface{}, val string) (in
 func (c *ServerResourcesMonitor) querySegmentedData(values []string, tp interface{}) ([]ChartsRows, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	end := time.Now().Unix()
-	start := end - 24*3600
 
-	segmentCount := 7
-	interval := int64(4 * 3600) // 4 小时
+	now := time.Now()
+	interval := 2 * time.Hour
+	segmentCount := 12
+
+	// ✅ 对当前时间向下取整为 2 小时整点：确保 04:05 => 04:00
+	baseTime := time.Date(
+		now.Year(), now.Month(), now.Day(),
+		now.Hour(), 0, 0, 0, now.Location(),
+	)
+	fmt.Println("base >>> ", baseTime.Format("01/02 15:04"))
+
+	// ✅ 24 小时前的起点
+	startTime := baseTime.Add(-time.Duration(segmentCount-1) * interval)
+	fmt.Println("startTime >>> ", startTime)
+
+	// ✅ 初始化数据段
 	segments := make([][]float64, segmentCount)
 	labels := make([]string, segmentCount)
 
 	for i := 0; i < segmentCount; i++ {
-		segStart := start + int64(i)*interval
-		labels[i] = time.Unix(segStart, 0).Format("01/02 15:04") // eg: 06-16 00:00
+		segTime := startTime.Add(time.Duration(i) * interval)
+		labels[i] = segTime.Format("01/02 15:04")
 	}
 
-	for i := 0; i < len(values); i++ {
-		timestamp, f, err := c.parserEntry(tp, values[i])
+	// ✅ 遍历每个值并归入对应区段
+	for _, val := range values {
+		timestamp, f, err := c.parserEntry(tp, val)
 		if err != nil {
-			return []ChartsRows{}, err
+			return nil, err
 		}
 
-		if timestamp < start || timestamp > end {
+		ts := time.Unix(timestamp, 0)
+		if ts.Before(startTime) || ts.After(baseTime.Add(interval).Add(-1*time.Second)) {
 			continue
 		}
 
-		index := int((timestamp - start) / interval)
+		index := int(ts.Sub(startTime) / interval)
 		if index >= 0 && index < segmentCount {
 			segments[index] = append(segments[index], f)
 		}
@@ -390,20 +407,21 @@ func (c *ServerResourcesMonitor) querySegmentedData(values []string, tp interfac
 	var rows []ChartsRows
 	for i, group := range segments {
 		if len(group) == 0 {
-			timestamp, f, err := c.parserEntry(tp, values[0])
-			t := time.Unix(timestamp, 0).Format("01/02 15:04")
+			// 没数据就用首值填补
+			_, f, err := c.parserEntry(tp, values[0])
 			if err != nil {
-				return rows, err
+				return nil, err
 			}
 			rows = append(rows, ChartsRows{
-				Time: t,
+				Time: labels[i],
 				Data: f,
 			})
 			continue
 		}
+
 		sum := 0.0
-		for _, item := range group {
-			sum += item
+		for _, v := range group {
+			sum += v
 		}
 		avg := sum / float64(len(group))
 		rows = append(rows, ChartsRows{

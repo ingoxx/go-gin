@@ -386,6 +386,7 @@ func GetServerStatusController(ctx *gin.Context) {
 			"message": err.Error(),
 			"code":    10003,
 		})
+		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{

@@ -27,10 +27,10 @@ func InitPoolRds() (err error) {
 		Password:     config.RedisPwd,
 		MinIdleConns: 5,
 		PoolSize:     30,
-		PoolTimeout:  30 * time.Second,
-		DialTimeout:  10 * time.Second,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		PoolTimeout:  60 * time.Second,
+		DialTimeout:  60 * time.Second,
+		ReadTimeout:  60 * time.Second,
+		WriteTimeout: 60 * time.Second,
 	})
 
 	return RdPool.Ping().Err()
@@ -299,7 +299,7 @@ func (r *RedisDb) GetProcessStatus() (sm map[string]string, err error) {
 }
 
 func (r *RedisDb) GetServerCpuLoadData(key string) ([]string, error) {
-	values, err := r.pool.LRange(key, 0, -1).Result()
+	values, err := r.pool.LRange(key, 0, 14400).Result()
 	if err != nil {
 		return nil, err
 	}
